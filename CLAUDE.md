@@ -21,7 +21,8 @@ apps/web/src/
   ui/Hud.ts          介面協調：模式切換、指揮面板（數字、時鐘、事件、圖層按鈕）
   ui/sceneBar.ts     觀景模式工具列：時段、地標導覽、重設視角、截圖
   ui/regionPanel.ts  右側行政區面板（觀景：基本資料；指揮：災情與行動）
-  ui/endCard.ts      結算畫面
+  ui/endCard.ts      結算畫面（變化圖、決策時間軸）
+  ui/tutorial.ts     第一次進指揮模式的教學引導
   ui/layers.ts       災情圖層：模擬狀態 → 每區 0–1 嚴重度
   ui/loading.ts      載入畫面的高雄剪影
   ui/about.ts        「關於」頁：免責聲明、資料來源與授權

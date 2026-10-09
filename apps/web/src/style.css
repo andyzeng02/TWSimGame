@@ -93,6 +93,21 @@ dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .grade { font-size: 72px; font-weight: 800; line-height: 1; }
 .g-S { color: #b8860b; } .g-A { color: var(--accent); } .g-B { color: #3f8f5a; } .g-C { color: var(--warn); } .g-D { color: var(--bad); }
 .card h2 { margin: 8px 0 4px; font-size: 18px; }
+#end { overflow-y: auto; padding: 24px 0; }
+.end-card { width: min(440px, calc(100% - 32px)); }
+.end-card h3 { margin: 16px 0 6px; font-size: 14px; text-align: left; }
+.end-chart { width: 100%; height: 90px; background: var(--paper-2); border-radius: 8px; }
+.end-chart polyline { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.end-chart .trapped { stroke: var(--warn); }
+.end-chart .deaths { stroke: var(--bad); }
+.end-chart .grid { stroke: var(--line); stroke-dasharray: 3 3; }
+.end-card .legend { text-align: left; margin-top: 4px; }
+.swatch { display: inline-block; width: 12px; height: 3px; margin-right: 4px; vertical-align: middle; border-radius: 2px; }
+.swatch.trapped { background: var(--warn); }
+.swatch.deaths { background: var(--bad); }
+.decisions { list-style: none; margin: 0; padding: 0; max-height: 160px; overflow-y: auto; text-align: left; font-size: 12.5px; border-top: 1px solid var(--line); }
+.decisions li { padding: 4px 2px; border-bottom: 1px solid var(--line); }
+.decisions .t { display: inline-block; min-width: 34px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
 #footer { position: fixed; bottom: 34px; left: 284px; right: 60px; display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: none; }
 #disclaimer, #attribution { font-size: 11.5px; color: var(--ink-2); background: color-mix(in srgb, var(--paper) 85%, transparent); padding: 2px 12px; border-radius: 999px; max-width: 100%; text-align: center; }
@@ -182,3 +197,22 @@ body.scene #right { top: 84px; width: 260px; }
 .dot { display: inline-block; width: 9px; height: 9px; margin: 0 4px 0 2px; border-radius: 50%; border: 1px solid #fff; box-shadow: 0 0 0 1px var(--line); vertical-align: -1px; }
 .dot.hospital { background: #d2483f; }
 .dot.shelter { background: #2e8b62; }
+
+/* 教學：框出目標區塊，其餘變暗 */
+#tutorial { position: fixed; inset: 0; z-index: 20; }
+.tut-spot {
+  position: fixed; border-radius: 12px; border: 2px solid var(--accent);
+  box-shadow: 0 0 0 9999px rgba(30, 26, 20, 0.5); transition: all 0.25s ease; pointer-events: none;
+}
+.tut-card {
+  position: fixed; width: min(360px, calc(100% - 24px)); padding: 16px 18px 14px; background: var(--paper);
+  border-radius: var(--radius); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25); transition: top 0.25s ease, left 0.25s ease;
+}
+.tut-card h3 { margin: 2px 0 6px; font-size: 16px; }
+.tut-card p { margin: 0 0 12px; line-height: 1.6; }
+.tut-step { font-size: 11.5px; color: var(--ink-2); }
+.tut-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+.tut-actions button { border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 6px 12px; font: inherit; cursor: pointer; }
+.tut-actions button.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tut-actions button.link { margin-right: auto; border: 0; background: none; color: var(--ink-2); padding: 6px 0; text-decoration: underline; }
+.tut-actions button:disabled { opacity: 0.4; cursor: default; }

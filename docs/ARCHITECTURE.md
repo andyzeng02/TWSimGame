@@ -89,6 +89,8 @@
 
 載入畫面：`ui/loading.ts` 用世界檔的行政區外框畫高雄剪影，依載入進度填色。
 
+遊戲紀錄：`Game.history` 記下每小時實際執行的行動與全市數字（第 0 筆是地震剛發生時），結算畫面用它畫變化圖與決策時間軸。教學看完與否記在瀏覽器 `localStorage`（`twsim.tutorial.done`），存不了時下次會再出現，不影響遊戲。
+
 震波：`MapView.playShockwave(中心, 強度)`，由 `Hud` 在事件紀錄出現新的 `quake`／`aftershock` 時呼叫（中心取震源斷層的中點）。動畫每一格改 GeoJSON 資料而不是 paint，3D 地形上才會正確更新；設定在 `config.ts` 的 `SHOCKWAVE`。
 
 地標導覽：`MapView.startTour()` 依 `config.ts` 的 `LANDMARKS` 依序 `flyTo`，節奏在 `TOUR`；使用者動地圖就自動停止。

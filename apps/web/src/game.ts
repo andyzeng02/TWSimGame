@@ -5,8 +5,17 @@ import { createEarthquakeRules, type EqAction } from '@twsim/rules-game';
  * 遊戲控制器：時間推進、行動佇列。畫面（MapView / Hud）只透過這裡讀寫模擬。
  * 玩家的行動先進佇列，在下一個 tick 開始時套用（與 sim-core 的 tick 順序一致）。
  */
+/** 每小時的紀錄：實際執行的行動與當時的全市數字（結算畫面的決策重播用） */
+export interface TickRecord {
+  tick: number;
+  actions: EqAction[];
+  metrics: Record<string, number>;
+}
+
 export class Game {
   sim: Sim<EqAction>;
+  /** 本局每小時的紀錄；第 0 筆是地震剛發生時 */
+  history: TickRecord[] = [];
   readonly rules = createEarthquakeRules();
   pending: EqAction[] = [];
   playing = false;
@@ -16,6 +25,11 @@ export class Game {
 
   constructor(private world: World, private seed: number = Date.now() % 1_000_000) {
     this.sim = createSim(world, this.rules, seed);
+    this.history = [this.startRecord()];
+  }
+
+  private startRecord(): TickRecord {
+    return { tick: 0, actions: [], metrics: this.sim.snapshot().metrics };
   }
 
   get seedValue() {
@@ -55,6 +69,7 @@ export class Game {
     report.actionResults.forEach((r, i) => {
       if (!r.ok) this.sim.ctx.log('reject', `行動未執行（${actions[i].type}）：${r.reason}`);
     });
+    this.history.push({ tick: report.tick, actions: actions.filter((_, i) => report.actionResults[i]?.ok), metrics: report.metrics });
     if (report.ended) this.pause();
     this.emit(report);
   }
@@ -87,6 +102,7 @@ export class Game {
     this.seed = seed;
     this.pending = [];
     this.sim = createSim(this.world, this.rules, seed);
+    this.history = [this.startRecord()];
     this.emit(null);
   }
 

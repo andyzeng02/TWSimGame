@@ -4,6 +4,7 @@ import { renderEndCard } from './endCard';
 import { byId, el, fmtDays, fmtInt, fmtPct } from './format';
 import { renderRegionPanel } from './regionPanel';
 import { SceneBar } from './sceneBar';
+import { startTutorial, tutorialDone } from './tutorial';
 import { LAYERS, type Layer } from './layers';
 
 const METRICS: { key: string; label: string; fmt: (x: number) => string; bad: (x: number) => boolean }[] = [
@@ -49,6 +50,7 @@ export class Hud {
     const fac = byId<HTMLInputElement>('facilities');
     fac.addEventListener('change', () => map.setFacilities(fac.checked));
     byId('to-command').addEventListener('click', () => this.setScene(false));
+    byId('tutorial-open').addEventListener('click', () => this.tutorial());
     byId('to-scene').addEventListener('click', () => this.setScene(true));
     new SceneBar(map);
     map.onSelect((i) => {
@@ -73,6 +75,13 @@ export class Hud {
     this.map.setSceneMode(scene);
     if (scene) this.game.pause();
     this.render();
+    // 第一次進指揮模式：先看教學（等震波播完、畫面穩定再開）
+    if (!scene && !tutorialDone() && !document.getElementById('tutorial')) setTimeout(() => this.tutorial(), 600);
+  }
+
+  private tutorial() {
+    this.game.pause();
+    startTutorial();
   }
 
   private syncToggles(kind: 'hillshade' | 'buildings', on: boolean) {

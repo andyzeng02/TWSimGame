@@ -9,7 +9,8 @@ import type {
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { World } from '@twsim/sim-core';
-import { DEM_ATTRIBUTION, DEM_TILES, MAP_CONFIG, SKY, STYLE_URL } from './config';
+import { DEM_ATTRIBUTION, DEM_TILES, MAP_CONFIG, PALETTE, SKY } from './config';
+import { buildStyle } from './style';
 
 /**
  * 高雄 3D 地景地圖（MapLibre GL）。
@@ -39,7 +40,7 @@ export class MapView {
     const { start, bounds, localFont } = MAP_CONFIG;
     this.map = new MLMap({
       container,
-      style: STYLE_URL,
+      style: buildStyle(),
       center: start.center,
       zoom: start.zoom,
       pitch: start.pitch,
@@ -170,10 +171,10 @@ export class MapView {
         type: 'hillshade',
         source: 'hillshade-dem',
         paint: {
-          'hillshade-exaggeration': 0.55,
-          'hillshade-shadow-color': '#3d4a3a',
-          'hillshade-highlight-color': '#fffdf5',
-          'hillshade-accent-color': '#5c6b52',
+          'hillshade-exaggeration': PALETTE.hillshade.exaggeration,
+          'hillshade-shadow-color': PALETTE.hillshade.shadow,
+          'hillshade-highlight-color': PALETTE.hillshade.highlight,
+          'hillshade-accent-color': PALETTE.hillshade.accent,
           'hillshade-illumination-direction': 315,
         },
       },

@@ -3,12 +3,66 @@
  *
  * 底圖：OpenFreeMap 的向量圖磚（OpenStreetMap 資料、OpenMapTiles 格式），
  *   內含海岸、河流、湖泊、森林、草地、道路、3D 建築等圖層。免費、免金鑰、可商用；
- *   正式上架時可依 https://openfreemap.org 的說明自架，只要改 STYLE_URL。
+ *   正式上架時可依 https://openfreemap.org 的說明自架，改 style/base.json 裡的網址即可。
+ * 樣式：自有樣式檔 style/base.json（圖層結構）＋ 下方 PALETTE（插畫風配色與字級）。
  * 地形：AWS Terrain Tiles（Terrarium 編碼高程），可商用，需標示來源。
  */
 
-/** 底圖樣式。可換成 'bright'、'positron'，或自架的樣式網址 */
-export const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+/**
+ * 插畫風配色：柔和、低彩度的平塗色塊，地形層次靠山體陰影表現。
+ * 調整畫面風格只改這裡；圖層對應寫在 style/index.ts。
+ */
+export const PALETTE = {
+  /** 陸地底色 */
+  land: '#f2ecdc',
+  /** 海、湖、河 */
+  water: '#9cc7d6',
+  waterLabel: '#3d6a80',
+  river: '#8bbdd0',
+  /** 綠地：森林最深，草地、公園較淺 */
+  wood: '#a9c995',
+  grass: '#c9dcaa',
+  park: '#bfd8a6',
+  farmland: '#e6e0bd',
+  sand: '#efe2bb',
+  wetland: '#bcd6c4',
+  /** 市區 */
+  residential: '#ebe1cf',
+  school: '#ebe5c6',
+  hospital: '#f1dcd6',
+  cemetery: '#d7dcbf',
+  airport: '#e4dfd2',
+  /** 道路：主色＋外框 */
+  road: {
+    motorway: ['#f0bd84', '#d49f68'],
+    trunk: ['#f6d79a', '#d8b679'],
+    secondary: ['#fbe9b8', '#dcc896'],
+    minor: ['#fffdf7', '#d9d1c0'],
+    path: '#fffaf0',
+  },
+  rail: '#a99f91',
+  /** 建築（平面與 3D） */
+  building: '#e4d9c6',
+  buildingOutline: '#d2c5af',
+  building3d: '#ede3d1',
+  /** 文字 */
+  label: '#4a4033',
+  labelMinor: '#6f6455',
+  labelHalo: '#fbf7ee',
+  /** 地名字級（[縮放, 字級] 成對） */
+  labelSize: {
+    city: [8, 14, 12, 22],
+    town: [9, 12, 14, 18],
+    village: [10, 11, 14, 15],
+  },
+  /** 山體陰影 */
+  hillshade: {
+    shadow: '#5d6b58',
+    highlight: '#fffaf0',
+    accent: '#7f8f70',
+    exaggeration: 0.55,
+  },
+};
 
 export const DEM_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
 export const DEM_ATTRIBUTION = '高程 © Mapzen Terrain Tiles（AWS Open Data）';

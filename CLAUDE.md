@@ -16,7 +16,8 @@ apps/web/src/
   main.ts            進入點：載入世界檔、建立地圖與介面
   game.ts            遊戲控制：時間推進、行動佇列
   map/MapView.ts     MapLibre 地圖（地形、陰影、區界、區名、災情著色）
-  map/config.ts      地圖設定：樣式網址、高程來源、鏡頭、天空
+  map/config.ts      地圖設定：插畫風配色 PALETTE、高程來源、鏡頭、天空
+  map/style/         自有底圖樣式：base.json（圖層結構）＋ buildStyle()（套配色）
   ui/Hud.ts          介面（觀景模式工具列、指揮模式面板）
   ui/layers.ts       災情圖層：模擬狀態 → 每區 0–1 嚴重度
 packages/sim-core    模擬核心（無依賴）

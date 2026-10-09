@@ -161,9 +161,13 @@ body.scene #right { top: 84px; width: 260px; }
 @media (max-width: 760px) {
   #topbar { flex-wrap: wrap; gap: 8px; left: 8px; right: 8px; top: 8px; padding: 8px 10px; }
   .brand { min-width: 0; }
-  .metric { min-width: 0; padding: 3px 8px; }
+  /* 手機：品牌與時鐘一列，六個數字排成 3×2 的格子 */
+  #metrics { order: 3; flex: 1 1 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .metric { min-width: 0; padding: 2px 8px; }
+  .metric span { font-size: 10px; }
   .metric strong { font-size: 14px; }
   .clock { min-width: 0; flex: 1; }
+  #disclaimer { font-size: 10px; }
   #left { top: auto; bottom: 36px; left: 8px; right: 8px; width: auto; height: 34vh; }
   #right { top: auto; bottom: 36px; left: 8px; right: 8px; width: auto; max-height: 50vh; z-index: 2; }
   #footer { left: 8px; right: 8px; bottom: 4px; }

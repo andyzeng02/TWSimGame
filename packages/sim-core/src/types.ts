@@ -47,6 +47,28 @@ export interface WorldMeta {
   version: number;
   source: string;
   note?: string;
+  /** 產生日期（YYYY-MM-DD） */
+  builtAt?: string;
+  /** 用到的外部資料：來源、版本、授權（畫面上的「關於」頁會列出） */
+  sources?: DataSource[];
+}
+
+/** 世界檔用到的一份外部資料 */
+export interface DataSource {
+  /** 用途，例如「行政區界線」 */
+  role: string;
+  /** 資料集名稱 */
+  name: string;
+  /** 提供單位 */
+  publisher: string;
+  /** 使用的檔案（只留檔名） */
+  file?: string;
+  /** 資料版本或日期 */
+  version?: string;
+  license: string;
+  url?: string;
+  /** true = 暫用的約略值，不是真實資料 */
+  draft?: boolean;
 }
 
 export interface World {

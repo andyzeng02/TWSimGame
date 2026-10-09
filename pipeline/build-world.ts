@@ -18,7 +18,7 @@
  * 座標：經緯度與 TWD97 TM2（公尺）都接受，會自動判斷。
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   areaKm2,
@@ -38,7 +38,7 @@ import {
   type Ring,
   type XY,
 } from '@twsim/geo';
-import { distanceKm, validateWorld, type Edge, type Fault, type Region, type World } from '@twsim/sim-core';
+import { distanceKm, validateWorld, type DataSource, type Edge, type Fault, type Region, type World } from '@twsim/sim-core';
 
 export const COUNTY = '高雄市';
 /** 本島範圍：旗津區在行政上包含東沙、南沙，這些離島不放進遊戲地圖 */
@@ -333,6 +333,10 @@ export interface BuildInputs {
   faults?: Feature[];
   bedsCsv?: string;
   sourceNote: string;
+  /** 資料來源清單（寫進 meta.sources，給「關於」頁顯示） */
+  sources?: DataSource[];
+  /** 產生日期 YYYY-MM-DD */
+  builtAt?: string;
   /** 沒有人口檔時改用的約略人口（依區名對應，通常取自草稿世界） */
   fallbackPopulation?: Map<string, number>;
   /** 沒有斷層檔時改用的示意斷層 */
@@ -378,7 +382,15 @@ export function buildWorld(inp: BuildInputs, opt: BuildOptions = {}): World {
   } else log('[警告] 沒有斷層檔，地震劇本會退回以第一個區塊為震源');
 
   const world: World = {
-    meta: { id: 'kaohsiung', name: COUNTY, version: 1, source: 'pipeline/build-world.ts', note: inp.sourceNote },
+    meta: {
+      id: 'kaohsiung',
+      name: COUNTY,
+      version: 1,
+      source: 'pipeline/build-world.ts',
+      note: inp.sourceNote,
+      ...(inp.builtAt ? { builtAt: inp.builtAt } : {}),
+      ...(inp.sources ? { sources: inp.sources } : {}),
+    },
     regions,
     edges,
     faults,
@@ -396,6 +408,66 @@ function parseArgs(argv: string[]): Record<string, string> {
     if (argv[i].startsWith('--')) out[argv[i].slice(2)] = argv[i + 1] ?? '';
   }
   return out;
+}
+
+const GOV_LICENSE = '政府資料開放授權條款－第 1 版';
+
+/**
+ * 依輸入檔產生資料來源清單（ROADMAP 2.4）。版本優先從檔名裡的民國日期讀出，
+ * 例如 TOWN_MOI_1140318 → 2025-03-18。
+ */
+export function describeSources(a: { boundaries: string; population?: string; faults?: string; beds?: string }): DataSource[] {
+  const file = (p: string) => basename(p);
+  const list: DataSource[] = [
+    {
+      role: '行政區界線',
+      name: '鄉鎮市區界線（TWD97 經緯度）',
+      publisher: '內政部國土測繪中心',
+      file: file(a.boundaries),
+      version: rocDateIn(a.boundaries),
+      license: GOV_LICENSE,
+      url: 'https://data.gov.tw/dataset/7441',
+    },
+  ];
+  list.push(
+    a.population
+      ? {
+          role: '人口',
+          name: '村里戶數、單一年齡人口',
+          publisher: '內政部戶政司',
+          file: file(a.population),
+          version: rocDateIn(a.population),
+          license: GOV_LICENSE,
+          url: 'https://data.gov.tw/',
+        }
+      : { role: '人口', name: '草稿約略值', publisher: '本專案', license: '—', draft: true },
+  );
+  list.push(
+    a.faults
+      ? {
+          role: '活動斷層',
+          name: '活動斷層分布',
+          publisher: '經濟部地質調查及礦業管理中心',
+          file: file(a.faults),
+          version: rocDateIn(a.faults),
+          license: GOV_LICENSE,
+          url: 'https://data.gov.tw/',
+        }
+      : { role: '活動斷層', name: '示意斷層（位置約略）', publisher: '本專案', license: '—', draft: true },
+  );
+  if (a.beds) {
+    list.push({ role: '醫院病床', name: '醫療機構病床數（自行整理）', publisher: '衛生福利部', file: file(a.beds), license: GOV_LICENSE });
+  }
+  return list;
+}
+
+/** 檔名裡的 7 位數民國日期（例如 1140318）→ 西元 YYYY-MM-DD；沒有就回傳 undefined */
+export function rocDateIn(path: string): string | undefined {
+  const m = basename(path).match(/(?<!\d)(\d{3})(\d{2})(\d{2})(?!\d)/);
+  if (!m) return undefined;
+  const [y, mo, d] = [Number(m[1]) + 1911, Number(m[2]), Number(m[3])];
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return undefined;
+  return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
 function main() {
@@ -424,7 +496,9 @@ function main() {
         populationCsv: a.population ? decodeText(readFileSync(a.population)) : undefined,
         faults: a.faults ? readFeatures(loadFileSet(a.faults)) : undefined,
         bedsCsv: a.beds ? decodeText(readFileSync(a.beds)) : undefined,
-        sourceNote: `界線：${a.boundaries}；人口：${a.population ?? '草稿約略值'}；斷層：${a.faults ?? '草稿示意'}`,
+        sourceNote: `界線：${basename(a.boundaries)}；人口：${a.population ? basename(a.population) : '草稿約略值'}；斷層：${a.faults ? basename(a.faults) : '草稿示意'}`,
+        sources: describeSources({ ...a, boundaries: a.boundaries }),
+        builtAt: new Date().toISOString().slice(0, 10),
         fallbackPopulation: sample ? new Map(sample.regions.map((r) => [r.name, r.population])) : undefined,
         fallbackFaults: sample?.faults,
       },

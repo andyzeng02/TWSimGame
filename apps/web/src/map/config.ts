@@ -274,3 +274,14 @@ export const LANDMARKS: { name: string; center: [number, number]; zoom: number; 
 
 /** 地標導覽的節奏（毫秒）：飛行時間、每站停留 */
 export const TOUR = { flyMs: 5000, holdMs: 3000 };
+
+/** 地圖用到的線上服務與程式庫（「關於」頁列出；新增服務時同步更新 docs/ARCHITECTURE.md 與 README） */
+export const MAP_SOURCES: { role: string; name: string; license: string; url: string }[] = [
+  { role: '地圖資料', name: 'OpenStreetMap 貢獻者', license: 'ODbL 1.0', url: 'https://www.openstreetmap.org/copyright' },
+  { role: '向量圖磚', name: 'OpenFreeMap（OpenMapTiles 格式）', license: '免費使用，需標示 OpenStreetMap', url: 'https://openfreemap.org' },
+  { role: '底圖樣式', name: 'OpenFreeMap liberty 樣式（本專案改為插畫風配色）', license: 'MIT', url: 'https://github.com/hyperknot/openfreemap-styles' },
+  { role: '地形高程', name: 'Mapzen Terrain Tiles（AWS Open Data）', license: '各來源授權，需標示', url: 'https://registry.opendata.aws/terrain-tiles/' },
+  { role: '地圖引擎', name: 'MapLibre GL JS', license: 'BSD-3-Clause', url: 'https://maplibre.org' },
+  { role: '等高線', name: 'maplibre-contour', license: 'BSD-3-Clause', url: 'https://github.com/onthegomap/maplibre-contour' },
+  { role: '瀏覽統計', name: 'GoatCounter（不使用 cookie、不追蹤個人）', license: '—', url: 'https://www.goatcounter.com' },
+];

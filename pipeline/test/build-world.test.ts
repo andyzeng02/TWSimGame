@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { lonLatToTm2, pointInRings, type XY } from '@twsim/geo';
-import { buildWorld, InputError, readFeatures } from '../build-world';
+import { buildWorld, describeSources, InputError, readFeatures, rocDateIn } from '../build-world';
 import { writeDbf, writeShp } from '../../packages/geo/test/writers';
 
 /** 以經緯度描述的方塊，輸出成 TM2 公尺座標（模擬國土測繪中心的 TM2 版本） */
@@ -138,5 +138,45 @@ describe('build-world', () => {
     const w = buildWorld({ boundaries: readFeatures({ geojson: gj }), sourceNote: '' });
     assert.equal(w.regions[0].name, '前鎮區');
     assert.ok(w.regions[0].areaKm2 > 25);
+  });
+});
+
+describe('資料來源（ROADMAP 2.4）', () => {
+  it('從檔名讀出民國日期', () => {
+    assert.equal(rocDateIn('pipeline/raw/TOWN_MOI_1140318.shp'), '2025-03-18');
+    assert.equal(rocDateIn('C:\\data\\pop_1130930.csv'), '2024-09-30');
+    assert.equal(rocDateIn('faults.shp'), undefined);
+    assert.equal(rocDateIn('x_1141399.shp'), undefined, '不合理的月份');
+  });
+
+  it('只給界線時，人口與斷層標成草稿；檔案只留檔名', () => {
+    const s = describeSources({ boundaries: '/home/me/secret/TOWN_MOI_1140318.shp' });
+    assert.deepEqual(
+      s.map((x) => [x.role, x.draft ?? false]),
+      [
+        ['行政區界線', false],
+        ['人口', true],
+        ['活動斷層', true],
+      ],
+    );
+    assert.equal(s[0].file, 'TOWN_MOI_1140318.shp');
+    assert.equal(s[0].version, '2025-03-18');
+    assert.ok(!JSON.stringify(s).includes('secret'), '不能留下本機路徑');
+  });
+
+  it('有人口、斷層、床數檔時列出各自來源', () => {
+    const s = describeSources({ boundaries: 'b.shp', population: 'p.csv', faults: 'f.shp', beds: 'beds.csv' });
+    assert.deepEqual(
+      s.map((x) => x.role),
+      ['行政區界線', '人口', '活動斷層', '醫院病床'],
+    );
+    assert.ok(s.every((x) => !x.draft));
+  });
+
+  it('寫進世界檔的 meta', () => {
+    const sources = describeSources({ boundaries: 'b.shp' });
+    const w = buildWorld({ boundaries: fakeBoundaries(), sourceNote: '', sources, builtAt: '2026-10-09' });
+    assert.equal(w.meta.builtAt, '2026-10-09');
+    assert.deepEqual(w.meta.sources, sources);
   });
 });

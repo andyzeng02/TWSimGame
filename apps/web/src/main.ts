@@ -4,6 +4,7 @@ import { MapView } from './map/MapView';
 import { Hud } from './ui/Hud';
 import { byId } from './ui/format';
 import { drawSilhouette } from './ui/loading';
+import { setupAbout } from './ui/about';
 import './style.css';
 
 // 有正式世界檔（npm run build-world 產出的 kaohsiung.json）就用它，否則用草稿世界
@@ -39,6 +40,7 @@ async function main() {
   const seedParam = Number(new URLSearchParams(location.search).get('seed'));
   const game = new Game(world, Number.isFinite(seedParam) && seedParam > 0 ? seedParam : undefined);
   new Hud(game, map);
+  setupAbout(world);
 
   // 開發時方便從瀏覽器主控台查看
   Object.assign(window, { game, map });

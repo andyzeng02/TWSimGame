@@ -156,3 +156,24 @@ body.scene #right { top: 84px; width: 260px; }
   body.scene #right { top: auto; bottom: 36px; left: 8px; right: 8px; width: auto; }
   #warnings { top: auto; bottom: calc(34vh + 44px); max-width: calc(100% - 16px); }
 }
+
+/* 關於頁 */
+#about {
+  width: min(860px, calc(100% - 24px)); max-height: calc(100% - 48px); padding: 0; border: 1px solid var(--line);
+  border-radius: var(--radius); background: var(--paper); color: var(--ink); box-shadow: 0 20px 60px rgba(40, 30, 20, 0.25);
+}
+#about::backdrop { background: rgba(30, 26, 20, 0.35); }
+#about form { padding: 22px 26px 18px; position: relative; }
+#about h2 { margin: 0 0 10px; font-size: 18px; }
+#about h3 { margin: 18px 0 8px; font-size: 15px; }
+#about p { margin: 6px 0; }
+#about .disclaimer { padding: 8px 12px; background: var(--paper-2); border-radius: 8px; }
+#about .close { position: absolute; top: 12px; right: 14px; border: 0; background: none; font-size: 18px; cursor: pointer; color: var(--ink-2); }
+#about .table-wrap { overflow-x: auto; }
+#about table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+#about th, #about td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+#about th { color: var(--ink-2); font-weight: 600; white-space: nowrap; }
+#about td:first-child { white-space: nowrap; }
+#about tr.draft td { color: var(--ink-2); }
+#about .tag { margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: var(--warn); color: #fff; font-size: 11px; }
+#about a { color: var(--accent); }

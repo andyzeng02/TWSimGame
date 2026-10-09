@@ -21,6 +21,7 @@ apps/web/src/
   ui/Hud.ts          介面（觀景模式工具列、指揮模式面板）
   ui/layers.ts       災情圖層：模擬狀態 → 每區 0–1 嚴重度
   ui/loading.ts      載入畫面的高雄剪影
+  ui/about.ts        「關於」頁：免責聲明、資料來源與授權
   ui/screenshot.ts   一鍵截圖分享
 packages/sim-core    模擬核心（無依賴）
 packages/geo         地理工具：Shapefile、TWD97、多邊形、CSV（無依賴）
@@ -40,7 +41,7 @@ docs/                架構、路線圖、決策紀錄
 6. **地圖不含規則**：`MapView` 只接收嚴重度、搜救隊數等「要畫什麼」，不做任何判斷。
 7. **地圖只畫區界線**：不要畫區塊之間的連線，也不要做浮空台座（使用者明確不要）。
 8. **不提其他作品**：文件、註解、介面文字不要寫其他遊戲或作品的名稱當參考對象（使用者不希望被認為抄襲）；風格用自己的話描述。
-9. **外部資料要標示來源**：新增任何圖磚或資料來源，同時更新 `docs/ARCHITECTURE.md` 的外部服務表與 README。
+9. **外部資料要標示來源**：新增任何圖磚或資料來源，同時更新 `docs/ARCHITECTURE.md` 的外部服務表、README，以及 `map/config.ts` 的 `MAP_SOURCES`（「關於」頁會列出）。
 
 ## 指令
 

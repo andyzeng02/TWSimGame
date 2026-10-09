@@ -1,0 +1,14 @@
+{
+  "name": "@twsim/sim-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "模擬核心：區塊、連線、tick、擴散、事件、可重現亂數。不依賴任何畫面程式。",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc -p ."
+  }
+}

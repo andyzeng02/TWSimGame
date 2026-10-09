@@ -1,0 +1,1341 @@
+{
+ "meta": {
+  "id": "kaohsiung-sample",
+  "name": "高雄市（草稿世界）",
+  "version": 1,
+  "source": "tools/make-sample-world.ts",
+  "note": "中心點、面積、人口為約略值；連線為最近鄰自動產生；斷層為示意。正式資料請執行 pipeline/build_world.py。"
+ },
+ "regions": [
+  {
+   "id": "KHH-01",
+   "name": "楠梓區",
+   "county": "高雄市",
+   "centroid": [
+    120.326,
+    22.727
+   ],
+   "areaKm2": 25.8,
+   "population": 190000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-02",
+   "name": "左營區",
+   "county": "高雄市",
+   "centroid": [
+    120.295,
+    22.687
+   ],
+   "areaKm2": 19.4,
+   "population": 200000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-03",
+   "name": "鼓山區",
+   "county": "高雄市",
+   "centroid": [
+    120.275,
+    22.648
+   ],
+   "areaKm2": 14.8,
+   "population": 140000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-04",
+   "name": "三民區",
+   "county": "高雄市",
+   "centroid": [
+    120.318,
+    22.65
+   ],
+   "areaKm2": 19.8,
+   "population": 330000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-05",
+   "name": "鹽埕區",
+   "county": "高雄市",
+   "centroid": [
+    120.285,
+    22.625
+   ],
+   "areaKm2": 1.4,
+   "population": 22000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-06",
+   "name": "前金區",
+   "county": "高雄市",
+   "centroid": [
+    120.295,
+    22.627
+   ],
+   "areaKm2": 1.9,
+   "population": 26000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-07",
+   "name": "新興區",
+   "county": "高雄市",
+   "centroid": [
+    120.307,
+    22.63
+   ],
+   "areaKm2": 2,
+   "population": 48000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-08",
+   "name": "苓雅區",
+   "county": "高雄市",
+   "centroid": [
+    120.32,
+    22.622
+   ],
+   "areaKm2": 8.2,
+   "population": 160000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-09",
+   "name": "前鎮區",
+   "county": "高雄市",
+   "centroid": [
+    120.315,
+    22.59
+   ],
+   "areaKm2": 19.1,
+   "population": 175000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-10",
+   "name": "旗津區",
+   "county": "高雄市",
+   "centroid": [
+    120.27,
+    22.59
+   ],
+   "areaKm2": 1.5,
+   "population": 28000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-11",
+   "name": "小港區",
+   "county": "高雄市",
+   "centroid": [
+    120.355,
+    22.555
+   ],
+   "areaKm2": 45,
+   "population": 155000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-12",
+   "name": "鳳山區",
+   "county": "高雄市",
+   "centroid": [
+    120.358,
+    22.627
+   ],
+   "areaKm2": 26.8,
+   "population": 350000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-13",
+   "name": "大寮區",
+   "county": "高雄市",
+   "centroid": [
+    120.4,
+    22.6
+   ],
+   "areaKm2": 71,
+   "population": 110000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-14",
+   "name": "鳥松區",
+   "county": "高雄市",
+   "centroid": [
+    120.365,
+    22.66
+   ],
+   "areaKm2": 24.6,
+   "population": 44000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-15",
+   "name": "林園區",
+   "county": "高雄市",
+   "centroid": [
+    120.395,
+    22.505
+   ],
+   "areaKm2": 32.3,
+   "population": 68000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-16",
+   "name": "仁武區",
+   "county": "高雄市",
+   "centroid": [
+    120.35,
+    22.7
+   ],
+   "areaKm2": 36.1,
+   "population": 93000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-17",
+   "name": "大樹區",
+   "county": "高雄市",
+   "centroid": [
+    120.43,
+    22.7
+   ],
+   "areaKm2": 66.9,
+   "population": 41000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-18",
+   "name": "大社區",
+   "county": "高雄市",
+   "centroid": [
+    120.355,
+    22.73
+   ],
+   "areaKm2": 26.6,
+   "population": 34000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-19",
+   "name": "岡山區",
+   "county": "高雄市",
+   "centroid": [
+    120.295,
+    22.795
+   ],
+   "areaKm2": 47.9,
+   "population": 97000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-20",
+   "name": "路竹區",
+   "county": "高雄市",
+   "centroid": [
+    120.265,
+    22.855
+   ],
+   "areaKm2": 48.4,
+   "population": 50000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-21",
+   "name": "橋頭區",
+   "county": "高雄市",
+   "centroid": [
+    120.305,
+    22.757
+   ],
+   "areaKm2": 25.9,
+   "population": 38000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-22",
+   "name": "梓官區",
+   "county": "高雄市",
+   "centroid": [
+    120.265,
+    22.76
+   ],
+   "areaKm2": 11.6,
+   "population": 35000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-23",
+   "name": "彌陀區",
+   "county": "高雄市",
+   "centroid": [
+    120.245,
+    22.78
+   ],
+   "areaKm2": 14.8,
+   "population": 19000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-24",
+   "name": "永安區",
+   "county": "高雄市",
+   "centroid": [
+    120.225,
+    22.82
+   ],
+   "areaKm2": 22.6,
+   "population": 14000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-25",
+   "name": "燕巢區",
+   "county": "高雄市",
+   "centroid": [
+    120.36,
+    22.795
+   ],
+   "areaKm2": 65.4,
+   "population": 29000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-26",
+   "name": "田寮區",
+   "county": "高雄市",
+   "centroid": [
+    120.36,
+    22.865
+   ],
+   "areaKm2": 92.7,
+   "population": 7000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-27",
+   "name": "阿蓮區",
+   "county": "高雄市",
+   "centroid": [
+    120.32,
+    22.88
+   ],
+   "areaKm2": 34.6,
+   "population": 27000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-28",
+   "name": "茄萣區",
+   "county": "高雄市",
+   "centroid": [
+    120.18,
+    22.905
+   ],
+   "areaKm2": 15.8,
+   "population": 29000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-29",
+   "name": "湖內區",
+   "county": "高雄市",
+   "centroid": [
+    120.215,
+    22.905
+   ],
+   "areaKm2": 20.2,
+   "population": 29000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-30",
+   "name": "旗山區",
+   "county": "高雄市",
+   "centroid": [
+    120.48,
+    22.89
+   ],
+   "areaKm2": 94.6,
+   "population": 35000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-31",
+   "name": "美濃區",
+   "county": "高雄市",
+   "centroid": [
+    120.54,
+    22.895
+   ],
+   "areaKm2": 120,
+   "population": 38000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-32",
+   "name": "內門區",
+   "county": "高雄市",
+   "centroid": [
+    120.465,
+    22.945
+   ],
+   "areaKm2": 95.6,
+   "population": 14000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-33",
+   "name": "杉林區",
+   "county": "高雄市",
+   "centroid": [
+    120.54,
+    22.97
+   ],
+   "areaKm2": 104,
+   "population": 12000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-34",
+   "name": "甲仙區",
+   "county": "高雄市",
+   "centroid": [
+    120.59,
+    23.085
+   ],
+   "areaKm2": 124,
+   "population": 6000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-35",
+   "name": "六龜區",
+   "county": "高雄市",
+   "centroid": [
+    120.635,
+    23
+   ],
+   "areaKm2": 194.2,
+   "population": 12000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-36",
+   "name": "茂林區",
+   "county": "高雄市",
+   "centroid": [
+    120.665,
+    22.89
+   ],
+   "areaKm2": 194,
+   "population": 2000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-37",
+   "name": "桃源區",
+   "county": "高雄市",
+   "centroid": [
+    120.76,
+    23.16
+   ],
+   "areaKm2": 928,
+   "population": 4000,
+   "attrs": {}
+  },
+  {
+   "id": "KHH-38",
+   "name": "那瑪夏區",
+   "county": "高雄市",
+   "centroid": [
+    120.7,
+    23.27
+   ],
+   "areaKm2": 252.9,
+   "population": 3000,
+   "attrs": {}
+  }
+ ],
+ "edges": [
+  {
+   "from": 0,
+   "to": 1,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5.5
+  },
+  {
+   "from": 0,
+   "to": 15,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.9
+  },
+  {
+   "from": 0,
+   "to": 17,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3
+  },
+  {
+   "from": 0,
+   "to": 20,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4
+  },
+  {
+   "from": 0,
+   "to": 21,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 7.3
+  },
+  {
+   "from": 1,
+   "to": 2,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.8
+  },
+  {
+   "from": 1,
+   "to": 3,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.7
+  },
+  {
+   "from": 1,
+   "to": 15,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5.8
+  },
+  {
+   "from": 2,
+   "to": 3,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.4
+  },
+  {
+   "from": 2,
+   "to": 4,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 2.8
+  },
+  {
+   "from": 2,
+   "to": 5,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.1
+  },
+  {
+   "from": 2,
+   "to": 6,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.9
+  },
+  {
+   "from": 3,
+   "to": 4,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.4
+  },
+  {
+   "from": 3,
+   "to": 5,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.5
+  },
+  {
+   "from": 3,
+   "to": 6,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 2.5
+  },
+  {
+   "from": 3,
+   "to": 7,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.1
+  },
+  {
+   "from": 3,
+   "to": 11,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.8
+  },
+  {
+   "from": 3,
+   "to": 13,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5
+  },
+  {
+   "from": 4,
+   "to": 5,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 1.1
+  },
+  {
+   "from": 4,
+   "to": 6,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 2.3
+  },
+  {
+   "from": 4,
+   "to": 7,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.6
+  },
+  {
+   "from": 4,
+   "to": 9,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.2
+  },
+  {
+   "from": 5,
+   "to": 6,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 1.3
+  },
+  {
+   "from": 5,
+   "to": 7,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 2.6
+  },
+  {
+   "from": 5,
+   "to": 8,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.6
+  },
+  {
+   "from": 5,
+   "to": 9,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.9
+  },
+  {
+   "from": 6,
+   "to": 7,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 1.6
+  },
+  {
+   "from": 6,
+   "to": 8,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.5
+  },
+  {
+   "from": 6,
+   "to": 9,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5.9
+  },
+  {
+   "from": 6,
+   "to": 11,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5.3
+  },
+  {
+   "from": 7,
+   "to": 8,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.6
+  },
+  {
+   "from": 7,
+   "to": 11,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.9
+  },
+  {
+   "from": 7,
+   "to": 12,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 8.6
+  },
+  {
+   "from": 7,
+   "to": 13,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 6.3
+  },
+  {
+   "from": 8,
+   "to": 9,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.6
+  },
+  {
+   "from": 8,
+   "to": 10,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5.7
+  },
+  {
+   "from": 8,
+   "to": 14,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 12.5
+  },
+  {
+   "from": 10,
+   "to": 11,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 8
+  },
+  {
+   "from": 10,
+   "to": 12,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 6.8
+  },
+  {
+   "from": 10,
+   "to": 14,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 6.9
+  },
+  {
+   "from": 11,
+   "to": 12,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5.3
+  },
+  {
+   "from": 11,
+   "to": 13,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.7
+  },
+  {
+   "from": 11,
+   "to": 14,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 14.1
+  },
+  {
+   "from": 11,
+   "to": 16,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 11
+  },
+  {
+   "from": 12,
+   "to": 13,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 7.6
+  },
+  {
+   "from": 12,
+   "to": 14,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 10.6
+  },
+  {
+   "from": 13,
+   "to": 15,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.7
+  },
+  {
+   "from": 13,
+   "to": 16,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 8
+  },
+  {
+   "from": 15,
+   "to": 16,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 8.2
+  },
+  {
+   "from": 15,
+   "to": 17,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.4
+  },
+  {
+   "from": 16,
+   "to": 17,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 8.4
+  },
+  {
+   "from": 17,
+   "to": 20,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5.9
+  },
+  {
+   "from": 17,
+   "to": 24,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 7.3
+  },
+  {
+   "from": 18,
+   "to": 19,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 7.4
+  },
+  {
+   "from": 18,
+   "to": 20,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.4
+  },
+  {
+   "from": 18,
+   "to": 21,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5
+  },
+  {
+   "from": 18,
+   "to": 22,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5.4
+  },
+  {
+   "from": 18,
+   "to": 23,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 7.7
+  },
+  {
+   "from": 18,
+   "to": 24,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 6.7
+  },
+  {
+   "from": 18,
+   "to": 25,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 10.3
+  },
+  {
+   "from": 18,
+   "to": 26,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 9.8
+  },
+  {
+   "from": 19,
+   "to": 23,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 5.7
+  },
+  {
+   "from": 19,
+   "to": 25,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 9.8
+  },
+  {
+   "from": 19,
+   "to": 26,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 6.3
+  },
+  {
+   "from": 19,
+   "to": 27,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 10.3
+  },
+  {
+   "from": 19,
+   "to": 28,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 7.6
+  },
+  {
+   "from": 20,
+   "to": 21,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.1
+  },
+  {
+   "from": 20,
+   "to": 22,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 6.7
+  },
+  {
+   "from": 20,
+   "to": 24,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 7.1
+  },
+  {
+   "from": 21,
+   "to": 22,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3
+  },
+  {
+   "from": 21,
+   "to": 23,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 7.8
+  },
+  {
+   "from": 22,
+   "to": 23,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.9
+  },
+  {
+   "from": 23,
+   "to": 27,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 10.5
+  },
+  {
+   "from": 23,
+   "to": 28,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 9.5
+  },
+  {
+   "from": 24,
+   "to": 25,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 7.8
+  },
+  {
+   "from": 24,
+   "to": 26,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 10.3
+  },
+  {
+   "from": 25,
+   "to": 26,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 4.4
+  },
+  {
+   "from": 25,
+   "to": 29,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 12.6
+  },
+  {
+   "from": 25,
+   "to": 31,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 14
+  },
+  {
+   "from": 26,
+   "to": 27,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 14.6
+  },
+  {
+   "from": 26,
+   "to": 28,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 11.1
+  },
+  {
+   "from": 27,
+   "to": 28,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 3.6
+  },
+  {
+   "from": 29,
+   "to": 30,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 6.2
+  },
+  {
+   "from": 29,
+   "to": 31,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 6.3
+  },
+  {
+   "from": 29,
+   "to": 32,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 10.8
+  },
+  {
+   "from": 29,
+   "to": 35,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 19
+  },
+  {
+   "from": 30,
+   "to": 31,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 9.5
+  },
+  {
+   "from": 30,
+   "to": 32,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 8.3
+  },
+  {
+   "from": 30,
+   "to": 34,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 15.2
+  },
+  {
+   "from": 30,
+   "to": 35,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 12.8
+  },
+  {
+   "from": 31,
+   "to": 32,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 8.2
+  },
+  {
+   "from": 31,
+   "to": 33,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 20.2
+  },
+  {
+   "from": 32,
+   "to": 33,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 13.8
+  },
+  {
+   "from": 32,
+   "to": 34,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 10.3
+  },
+  {
+   "from": 32,
+   "to": 35,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 15.6
+  },
+  {
+   "from": 32,
+   "to": 36,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 2,
+   "lengthKm": 30.9
+  },
+  {
+   "from": 32,
+   "to": 37,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 2,
+   "lengthKm": 37.2
+  },
+  {
+   "from": 33,
+   "to": 34,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 10.5
+  },
+  {
+   "from": 33,
+   "to": 36,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 19.3
+  },
+  {
+   "from": 33,
+   "to": 37,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 23.5
+  },
+  {
+   "from": 34,
+   "to": 35,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 12.6
+  },
+  {
+   "from": 34,
+   "to": 36,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 21.9
+  },
+  {
+   "from": 34,
+   "to": 37,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 2,
+   "lengthKm": 30.8
+  },
+  {
+   "from": 36,
+   "to": 37,
+   "kind": "road",
+   "capacity": 120,
+   "travelTicks": 1,
+   "lengthKm": 13.7
+  }
+ ],
+ "faults": [
+  {
+   "id": "chishan",
+   "name": "旗山斷層（示意）",
+   "line": [
+    [
+     120.495,
+     22.975
+    ],
+    [
+     120.44,
+     22.87
+    ],
+    [
+     120.395,
+     22.78
+    ],
+    [
+     120.36,
+     22.7
+    ]
+   ],
+   "note": "示意走向，非正式圖資"
+  },
+  {
+   "id": "hsiaokangshan",
+   "name": "小岡山斷層（示意）",
+   "line": [
+    [
+     120.315,
+     22.845
+    ],
+    [
+     120.3,
+     22.77
+    ]
+   ],
+   "note": "示意走向，非正式圖資"
+  }
+ ]
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.vite/
+*.log
+.DS_Store
+
+# 資料管線：原始下載檔不進版控（體積大，且應從官方來源重新下載）
+pipeline/raw/*
+!pipeline/raw/README.md
+
+# 批次輸出
+out/
+
+# 私人文件：不進版控
+*.docx

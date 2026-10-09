@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>高雄 3D 地景｜台灣微縮模擬</title>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <header id="scenebar">
+      <div class="brand">
+        <strong>高雄 3D 地景</strong>
+        <span class="tag">台灣微縮模擬</span>
+      </div>
+      <label class="toggle"><input type="checkbox" id="hillshade" checked /> 山體陰影</label>
+      <label class="toggle"><input type="checkbox" id="buildings" checked /> 3D 建築</label>
+      <button id="reset-view">重設視角</button>
+      <button id="to-command" class="primary">地震 72 小時 ▸</button>
+    </header>
+
+    <header id="topbar">
+      <div class="brand">
+        <strong>地震 72 小時</strong>
+        <span class="tag">高雄試玩版</span>
+      </div>
+      <div id="metrics"></div>
+      <div class="clock">
+        <span id="clock">第 0 小時</span>
+        <div class="bar"><div id="clockbar"></div></div>
+      </div>
+    </header>
+
+    <aside id="left">
+      <section>
+        <h3>指揮</h3>
+        <div class="row"><span>指揮點數</span><strong id="cp">0</strong></div>
+        <div class="row"><span>待命搜救隊</span><strong id="teams">0</strong></div>
+        <div class="row controls">
+          <button id="play">▶ 開始</button>
+          <button id="speed">1×</button>
+        </div>
+        <button id="announce" class="wide">發布闢謠公告（4 點）</button>
+        <button id="to-scene" class="wide">回到觀景模式（H）</button>
+      </section>
+      <section>
+        <h3>地圖圖層</h3>
+        <div id="layers"></div>
+        <label class="toggle"><input type="checkbox" id="hillshade-2" checked /> 山體陰影</label>
+        <label class="toggle"><input type="checkbox" id="buildings-2" checked /> 3D 建築（拉近才出現）</label>
+      </section>
+      <section class="log">
+        <h3>事件</h3>
+        <ol id="log"></ol>
+      </section>
+    </aside>
+
+    <aside id="right" hidden>
+      <section id="region"></section>
+    </aside>
+
+    <div id="end" hidden></div>
+
+    <div id="loading">
+      <div class="card">
+        <strong>正在載入高雄 3D 地景…</strong>
+        <div class="bar"><div id="loading-bar"></div></div>
+        <div id="loading-text" class="quiet">準備中</div>
+      </div>
+    </div>
+
+    <div id="warnings" hidden></div>
+
+    <footer id="footer">
+      <div id="disclaimer">本遊戲為虛構情境，非地震預測；數值為遊戲調校用，不代表真實災情。</div>
+      <div id="attribution"></div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

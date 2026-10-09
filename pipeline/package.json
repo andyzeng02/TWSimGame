@@ -1,0 +1,11 @@
+{
+  "name": "@twsim/pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "資料管線：政府開放資料 → data/world/*.json",
+  "dependencies": {
+    "@twsim/geo": "*",
+    "@twsim/sim-core": "*"
+  }
+}

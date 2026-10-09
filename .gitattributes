@@ -1,0 +1,10 @@
+# 文字檔一律用 LF 存進 git，Windows 取出時由 git 自行處理
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.docx binary
+*.xlsx binary
+*.shp binary
+*.dbf binary
+*.shx binary

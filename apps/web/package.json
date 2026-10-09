@@ -1,0 +1,19 @@
+{
+  "name": "@twsim/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p . && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@twsim/rules-game": "*",
+    "@twsim/sim-core": "*",
+    "maplibre-gl": "^5.0.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

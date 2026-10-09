@@ -1,0 +1,14 @@
+{
+  "name": "@twsim/geo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "純 TypeScript 地理工具：Shapefile/DBF 讀取、TWD97 TM2 轉換、多邊形、CSV。無外部依賴，瀏覽器與 Node 皆可用。",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc -p ."
+  }
+}

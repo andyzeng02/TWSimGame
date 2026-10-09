@@ -1,0 +1,27 @@
+{
+  "name": "twsimgame",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "pipeline"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @twsim/web",
+    "build": "npm run build -w @twsim/web",
+    "test": "tsx --test packages/sim-core/test/*.test.ts packages/rules-game/test/*.test.ts packages/geo/test/*.test.ts pipeline/test/*.test.ts",
+    "typecheck": "tsc -p packages/sim-core && tsc -p packages/rules-game && tsc -p packages/geo && tsc -p pipeline && tsc -p apps/web",
+    "batch": "tsx packages/rules-game/scripts/batch.ts",
+    "sample-world": "tsx tools/make-sample-world.ts",
+    "build-world": "tsx pipeline/build-world.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

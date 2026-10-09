@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "paths": {
+      "@twsim/sim-core": [
+        "./packages/sim-core/src/index.ts"
+      ],
+      "@twsim/rules-game": [
+        "./packages/rules-game/src/index.ts"
+      ],
+      "@twsim/geo": [
+        "./packages/geo/src/index.ts"
+      ]
+    }
+  }
+}

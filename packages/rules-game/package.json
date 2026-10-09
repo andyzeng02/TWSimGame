@@ -1,0 +1,18 @@
+{
+  "name": "@twsim/rules-game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "遊戲劇本規則（地震 72 小時…）。係數為遊戲調校用，不代表真實災情。",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@twsim/sim-core": "*"
+  },
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc -p .",
+    "batch": "tsx scripts/batch.ts"
+  }
+}

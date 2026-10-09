@@ -95,6 +95,17 @@ describe('world', () => {
     w2.edges.push({ from: 0, to: 9, kind: 'road', capacity: 1, travelTicks: 1, lengthKm: 1 });
     assert.ok(validateWorld(w2).some((e) => e.includes('不存在')));
   });
+  it('檢查設施點', () => {
+    const w = lineWorld();
+    w.facilities = [{ kind: 'hospital', name: '甲醫院', at: [120.3, 22.6], region: 0, capacity: 300 }];
+    assert.deepEqual(validateWorld(w), []);
+    w.facilities.push({ kind: 'shelter', name: '乙國小', at: [120.3, 22.6], region: 99 });
+    w.facilities.push({ kind: 'shelter', name: '丙活動中心', at: [Number.NaN, 22.6], region: 0, capacity: -1 });
+    const errs = validateWorld(w);
+    assert.ok(errs.some((e) => e.includes('乙國小') && e.includes('不存在')));
+    assert.ok(errs.some((e) => e.includes('丙活動中心') && e.includes('座標')));
+    assert.ok(errs.some((e) => e.includes('丙活動中心') && e.includes('容量')));
+  });
   it('距離計算合理', () => {
     // 緯度差 1 度約 111 公里
     assert.ok(Math.abs(distanceKm([120, 22], [120, 23]) - 111.32) < 0.5);

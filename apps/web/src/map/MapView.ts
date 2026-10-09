@@ -38,6 +38,8 @@ export type Progress = (message: string, fraction: number) => void;
 
 const SEL = ['boolean', ['feature-state', 'selected'], false] as ExpressionSpecification;
 const GAME_LAYERS = ['districts-fill', 'faults', 'teams'];
+/** 醫院與避難所（指揮模式才顯示，可用勾選框關掉） */
+const FACILITY_LAYERS = ['facility-dots', 'facility-labels', 'osm-hospitals'];
 
 /**
  * 海面拉平：註冊 flatsea:// 協定，下載高程圖磚後把負高程改成 0 再交給 MapLibre。
@@ -195,9 +197,25 @@ export class MapView {
     }
   }
 
-  /** 觀景模式：隱藏災情著色、斷層、搜救隊，只留地景、區界、區名 */
+  /** 觀景模式：隱藏災情著色、斷層、搜救隊、醫院與避難所，只留地景、區界、區名 */
   setSceneMode(scene: boolean) {
+    this.scene = scene;
     for (const id of GAME_LAYERS) if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', scene ? 'none' : 'visible');
+    this.syncFacilities();
+  }
+
+  /** 醫院與避難所圖層開關（只在指揮模式有效） */
+  setFacilities(on: boolean) {
+    this.facilitiesOn = on;
+    this.syncFacilities();
+  }
+
+  private scene = true;
+  private facilitiesOn = true;
+
+  private syncFacilities() {
+    const show = !this.scene && this.facilitiesOn;
+    for (const id of FACILITY_LAYERS) if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', show ? 'visible' : 'none');
   }
 
   /**
@@ -243,6 +261,13 @@ export class MapView {
     set('districts-line', 'line-color', ['case', SEL, '#1f5fe0', p.district.line]);
     set('district-labels', 'text-color', p.district.label);
     set('district-labels', 'text-halo-color', p.district.halo);
+    const F = p.facility;
+    set('facility-dots', 'circle-color', ['match', ['get', 'kind'], 'hospital', F.hospital, 'shelter', F.shelter, '#888888']);
+    set('facility-dots', 'circle-stroke-color', F.stroke);
+    set('osm-hospitals', 'circle-color', F.hospital);
+    set('osm-hospitals', 'circle-stroke-color', F.stroke);
+    set('facility-labels', 'text-color', F.label);
+    set('facility-labels', 'text-halo-color', p.labelHalo);
     // 開了 3D 地形時，MapLibre 會把底圖先畫成貼圖再貼到地表；只改 paint 不會清掉舊貼圖，
     // 不清的話會留下一塊塊舊顏色。這是內部 API，找不到就略過（最壞情況是等圖磚重載才更新）
     (map as unknown as { terrain?: { tileManager?: { freeRtt?: () => void } } }).terrain?.tileManager?.freeRtt?.();
@@ -529,6 +554,7 @@ export class MapView {
       },
       paint: { 'text-color': PALETTE.district.label, 'text-halo-color': PALETTE.district.halo, 'text-halo-width': 1.8 },
     });
+    this.setupFacilityLayers();
     add({
       id: 'teams',
       type: 'circle',
@@ -542,6 +568,77 @@ export class MapView {
         'circle-pitch-alignment': 'map',
       },
     });
+  }
+
+  /**
+   * 醫院與避難所（ROADMAP 2.3）：世界檔有 facilities 就畫它；
+   * 世界檔沒有醫院資料時，改用 OpenStreetMap 圖磚裡的醫院點，至少看得到位置。
+   */
+  private setupFacilityLayers() {
+    const map = this.map;
+    const F = PALETTE.facility;
+    const facilities = this.world.facilities ?? [];
+    map.addSource('facilities', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: facilities.map((f) => ({
+          type: 'Feature' as const,
+          properties: { kind: f.kind, name: f.name, capacity: f.capacity ?? null },
+          geometry: { type: 'Point' as const, coordinates: f.at },
+        })),
+      },
+    });
+    const color = ['match', ['get', 'kind'], 'hospital', F.hospital, 'shelter', F.shelter, '#888888'] as ExpressionSpecification;
+    const hidden = { visibility: 'none' as const };
+    map.addLayer({
+      id: 'facility-dots',
+      type: 'circle',
+      source: 'facilities',
+      minzoom: 10,
+      layout: hidden,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, ['match', ['get', 'kind'], 'hospital', 3.5, 2.5], 15, ['match', ['get', 'kind'], 'hospital', 8, 6]],
+        'circle-color': color,
+        'circle-stroke-color': F.stroke,
+        'circle-stroke-width': 1.2,
+        'circle-pitch-alignment': 'viewport',
+      },
+    });
+    map.addLayer({
+      id: 'facility-labels',
+      type: 'symbol',
+      source: 'facilities',
+      minzoom: 13.5,
+      layout: {
+        ...hidden,
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': 11,
+        'text-anchor': 'top',
+        'text-offset': [0, 0.7],
+        'text-optional': true,
+      },
+      paint: { 'text-color': F.label, 'text-halo-color': PALETTE.labelHalo, 'text-halo-width': 1.4 },
+    });
+    if (!facilities.some((f) => f.kind === 'hospital')) {
+      map.addLayer({
+        id: 'osm-hospitals',
+        type: 'circle',
+        source: 'openmaptiles',
+        'source-layer': 'poi',
+        minzoom: 11,
+        filter: ['==', ['get', 'class'], 'hospital'] as FilterSpecification,
+        layout: hidden,
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 3, 15, 7],
+          'circle-color': F.hospital,
+          'circle-stroke-color': F.stroke,
+          'circle-stroke-width': 1.2,
+          'circle-pitch-alignment': 'viewport',
+        },
+      });
+    }
   }
 
   private setupInteraction() {

@@ -76,6 +76,20 @@ export interface World {
   regions: Region[];
   edges: Edge[];
   faults: Fault[];
+  /** 地圖上的設施點（選用） */
+  facilities?: Facility[];
+}
+
+/** 設施點；kind 的意義（例如 hospital、shelter）由劇本與畫面決定 */
+export interface Facility {
+  kind: string;
+  name: string;
+  /** [經度, 緯度] */
+  at: [number, number];
+  /** 所在區塊索引 */
+  region: number;
+  /** 容量（病床數、收容人數等），沒有資料時省略 */
+  capacity?: number;
 }
 
 export interface ScheduledEvent {

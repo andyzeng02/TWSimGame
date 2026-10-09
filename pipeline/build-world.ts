@@ -11,6 +11,8 @@
  *   --population  人口 CSV（村里或鄉鎮市區層級皆可）                             建議
  *   --faults      活動斷層 .shp 或 .geojson                                      建議
  *   --beds        醫院床數 CSV（欄位：district,beds）                            選用
+ *   --shelters    避難收容處所 CSV（需有經度、緯度欄；全國檔也行，只留高雄）     選用
+ *   --hospitals   醫院點位 CSV（需有經度、緯度欄；有病床數欄會一併讀入）         選用
  *   --out         輸出路徑，預設 data/world/kaohsiung.json
  *   --county-col / --town-col / --code-col / --pop-district-col / --pop-value-col / --fault-name-col
  *                 自動偵測不到欄位時手動指定
@@ -38,7 +40,16 @@ import {
   type Ring,
   type XY,
 } from '@twsim/geo';
-import { distanceKm, validateWorld, type DataSource, type Edge, type Fault, type Region, type World } from '@twsim/sim-core';
+import {
+  distanceKm,
+  validateWorld,
+  type DataSource,
+  type Edge,
+  type Facility,
+  type Fault,
+  type Region,
+  type World,
+} from '@twsim/sim-core';
 
 export const COUNTY = '高雄市';
 /** 本島範圍：旗津區在行政上包含東沙、南沙，這些離島不放進遊戲地圖 */
@@ -303,6 +314,62 @@ export function readBeds(csvText: string): Map<string, number> {
   return new Map(rows.slice(1).map((r) => [String(r[nc]).trim(), Number(r[bc])]));
 }
 
+const FAC_NAME_COLS = ['避難收容處所名稱', '收容處所名稱', '醫院名稱', '機構名稱', '醫事機構名稱', '名稱', 'name', 'NAME'];
+const FAC_LON_COLS = ['經度', 'lon', 'lng', 'longitude', 'Longitude', 'LON', 'X', 'x', 'TWD97X', 'TWD97_X'];
+const FAC_LAT_COLS = ['緯度', 'lat', 'latitude', 'Latitude', 'LAT', 'Y', 'y', 'TWD97Y', 'TWD97_Y'];
+const FAC_CAP_COLS = ['預計收容人數', '收容人數', '可收容人數', '總病床數', '病床數', 'capacity', 'beds'];
+/** 點位不在任何區的外框內時（簡化外框在海岸邊會差幾十公尺），改歸到這個距離內最近的區 */
+const FAC_SNAP_KM = 2;
+
+/**
+ * 讀設施點 CSV（避難收容處所、醫院）→ 只留落在高雄各區內的點。
+ * 座標可為經緯度或 TWD97 TM2；名稱、經緯度、容量欄位自動偵測。
+ */
+export function readFacilities(csvText: string, kind: string, regions: Region[], opt: BuildOptions = {}): Facility[] {
+  const log = opt.log ?? (() => {});
+  const rows = parseCsv(csvText).filter((r) => r.some((c) => c.trim()));
+  const header = rows[0].map((h) => h.trim());
+  const what = kind === 'shelter' ? '避難收容處所' : '醫院';
+  const col = (cands: string[], label: string, optional = false) => {
+    const hit = cands.find((c) => header.includes(c));
+    if (!hit && !optional) throw new InputError(`${what}檔找不到${label}欄位。實際欄位：${header.join(', ')}`);
+    return hit ? header.indexOf(hit) : -1;
+  };
+  const [nc, xc, yc, cc] = [col(FAC_NAME_COLS, '名稱'), col(FAC_LON_COLS, '經度'), col(FAC_LAT_COLS, '緯度'), col(FAC_CAP_COLS, '容量', true)];
+  const out: Facility[] = [];
+  let skipped = 0;
+  for (const r of rows.slice(1)) {
+    let x = Number(r[xc]);
+    let y = Number(r[yc]);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || (x === 0 && y === 0)) {
+      skipped++;
+      continue;
+    }
+    if (!looksLikeLonLat([x, y, x, y])) [x, y] = tm2ToLonLat(x, y);
+    const at = roundXY([x, y]) as [number, number];
+    let region = regions.findIndex((g) => (g.polygon ?? []).some((ring) => pointInRing(at, ring)));
+    if (region < 0) {
+      const near = regions
+        .map((g, i) => ({ i, d: distanceKm(at, g.centroid) }))
+        .filter((c) => c.d <= FAC_SNAP_KM)
+        .sort((a, b) => a.d - b.d)[0];
+      if (!near) continue; // 高雄以外
+      region = near.i;
+    }
+    const cap = cc >= 0 ? Number(String(r[cc]).replace(/,/g, '')) : Number.NaN;
+    out.push({
+      kind,
+      name: String(r[nc] ?? '').trim() || `${what} ${out.length + 1}`,
+      at,
+      region,
+      ...(Number.isFinite(cap) && cap >= 0 ? { capacity: cap } : {}),
+    });
+  }
+  if (skipped) log(`[提醒] ${what}檔有 ${skipped} 筆沒有座標，已略過`);
+  log(`納入 ${out.length} 處${what}`);
+  return out;
+}
+
 export function buildFaults(features: Feature[], opt: BuildOptions = {}): Fault[] {
   const log = opt.log ?? (() => {});
   const cols = Object.keys(features[0]?.props ?? {});
@@ -332,6 +399,8 @@ export interface BuildInputs {
   populationCsv?: string;
   faults?: Feature[];
   bedsCsv?: string;
+  sheltersCsv?: string;
+  hospitalsCsv?: string;
   sourceNote: string;
   /** 資料來源清單（寫進 meta.sources，給「關於」頁顯示） */
   sources?: DataSource[];
@@ -381,6 +450,11 @@ export function buildWorld(inp: BuildInputs, opt: BuildOptions = {}): World {
     log('[提醒] 沒有斷層檔，暫用草稿世界的示意斷層');
   } else log('[警告] 沒有斷層檔，地震劇本會退回以第一個區塊為震源');
 
+  const facilities = [
+    ...(inp.hospitalsCsv ? readFacilities(inp.hospitalsCsv, 'hospital', regions, opt) : []),
+    ...(inp.sheltersCsv ? readFacilities(inp.sheltersCsv, 'shelter', regions, opt) : []),
+  ];
+
   const world: World = {
     meta: {
       id: 'kaohsiung',
@@ -394,6 +468,7 @@ export function buildWorld(inp: BuildInputs, opt: BuildOptions = {}): World {
     regions,
     edges,
     faults,
+    ...(facilities.length ? { facilities } : {}),
   };
   const errors = validateWorld(world);
   if (errors.length) throw new InputError(`產出的世界檔沒通過檢查：\n${errors.join('\n')}`);
@@ -416,7 +491,14 @@ const GOV_LICENSE = '政府資料開放授權條款－第 1 版';
  * 依輸入檔產生資料來源清單（ROADMAP 2.4）。版本優先從檔名裡的民國日期讀出，
  * 例如 TOWN_MOI_1140318 → 2025-03-18。
  */
-export function describeSources(a: { boundaries: string; population?: string; faults?: string; beds?: string }): DataSource[] {
+export function describeSources(a: {
+  boundaries: string;
+  population?: string;
+  faults?: string;
+  beds?: string;
+  shelters?: string;
+  hospitals?: string;
+}): DataSource[] {
   const file = (p: string) => basename(p);
   const list: DataSource[] = [
     {
@@ -455,6 +537,20 @@ export function describeSources(a: { boundaries: string; population?: string; fa
         }
       : { role: '活動斷層', name: '示意斷層（位置約略）', publisher: '本專案', license: '—', draft: true },
   );
+  if (a.shelters) {
+    list.push({
+      role: '避難收容處所',
+      name: '避難收容處所點位',
+      publisher: '內政部消防署',
+      file: file(a.shelters),
+      version: rocDateIn(a.shelters),
+      license: GOV_LICENSE,
+      url: 'https://data.gov.tw/',
+    });
+  }
+  if (a.hospitals) {
+    list.push({ role: '醫院', name: '醫院點位（自行整理）', publisher: '衛生福利部', file: file(a.hospitals), version: rocDateIn(a.hospitals), license: GOV_LICENSE });
+  }
   if (a.beds) {
     list.push({ role: '醫院病床', name: '醫療機構病床數（自行整理）', publisher: '衛生福利部', file: file(a.beds), license: GOV_LICENSE });
   }
@@ -496,6 +592,8 @@ function main() {
         populationCsv: a.population ? decodeText(readFileSync(a.population)) : undefined,
         faults: a.faults ? readFeatures(loadFileSet(a.faults)) : undefined,
         bedsCsv: a.beds ? decodeText(readFileSync(a.beds)) : undefined,
+        sheltersCsv: a.shelters ? decodeText(readFileSync(a.shelters)) : undefined,
+        hospitalsCsv: a.hospitals ? decodeText(readFileSync(a.hospitals)) : undefined,
         sourceNote: `界線：${basename(a.boundaries)}；人口：${a.population ? basename(a.population) : '草稿約略值'}；斷層：${a.faults ? basename(a.faults) : '草稿示意'}`,
         sources: describeSources({ ...a, boundaries: a.boundaries }),
         builtAt: new Date().toISOString().slice(0, 10),
@@ -508,7 +606,7 @@ function main() {
     writeFileSync(out, JSON.stringify(world), 'utf8');
     const kb = Math.round(Buffer.byteLength(JSON.stringify(world)) / 1024);
     console.log(`\n寫出 ${out}`);
-    console.log(`${world.regions.length} 區、${world.edges.length} 條連線、${world.faults.length} 段斷層，${kb} KB`);
+    console.log(`${world.regions.length} 區、${world.edges.length} 條連線、${world.faults.length} 段斷層、${world.facilities?.length ?? 0} 處設施，${kb} KB`);
     if (world.faults.length && !world.faults.some((f) => f.id === 'chishan')) {
       console.log('[提醒] 地震劇本預設震源 id 為 chishan，請改 packages/rules-game/src/earthquake/config.ts 的 faultId');
     }

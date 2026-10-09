@@ -43,6 +43,11 @@ export function validateWorld(world: World): string[] {
     if (!(e.capacity >= 0)) errors.push(`連線 ${i} 容量不合法`);
     if (!(e.travelTicks >= 1)) errors.push(`連線 ${i} travelTicks 至少為 1`);
   });
+  (world.facilities ?? []).forEach((f, i) => {
+    if (!(f.region >= 0 && f.region < n)) errors.push(`設施 ${i}（${f.name}）所在區塊不存在`);
+    if (f.at?.length !== 2 || !f.at.every(Number.isFinite)) errors.push(`設施 ${i}（${f.name}）座標不合法`);
+    if (f.capacity !== undefined && !(f.capacity >= 0)) errors.push(`設施 ${i}（${f.name}）容量不合法`);
+  });
   if (n > 0 && errors.length === 0 && !isConnected(world)) {
     errors.push('區塊之間不是全部連通（有孤島）');
   }

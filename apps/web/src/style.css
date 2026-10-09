@@ -177,3 +177,8 @@ body.scene #right { top: 84px; width: 260px; }
 #about tr.draft td { color: var(--ink-2); }
 #about .tag { margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: var(--warn); color: #fff; font-size: 11px; }
 #about a { color: var(--accent); }
+
+/* 圖層說明的小圓點 */
+.dot { display: inline-block; width: 9px; height: 9px; margin: 0 4px 0 2px; border-radius: 50%; border: 1px solid #fff; box-shadow: 0 0 0 1px var(--line); vertical-align: -1px; }
+.dot.hospital { background: #d2483f; }
+.dot.shelter { background: #2e8b62; }

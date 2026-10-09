@@ -59,6 +59,8 @@ export const PALETTE = {
   contour: { minor: '#9c8f72', major: '#7d6f52', label: '#6b5d42' },
   /** 山峰點與名稱 */
   peak: { dot: '#5b6b46', label: '#3f4a30' },
+  /** 設施點：醫院、避難所 */
+  facility: { hospital: '#d2483f', shelter: '#2e8b62', stroke: '#ffffff', label: '#3a332a' },
   /** 行政區界線與區名（遊戲圖層） */
   district: { line: '#4a4136', casing: '#ffffff', label: '#2b2620', halo: 'rgba(255,255,255,0.92)' },
   /** 山體陰影 */
@@ -140,6 +142,7 @@ export const NIGHT_PALETTE: Palette = {
   labelSize: PALETTE.labelSize,
   contour: { minor: '#46566b', major: '#6a7b91', label: '#a8b6c8' },
   peak: { dot: '#c8d2de', label: '#dfe6ee' },
+  facility: { hospital: '#ff7a6e', shelter: '#5fd0a0', stroke: '#141c28', label: '#ebe5d8' },
   district: { line: '#c9d3df', casing: '#0b1220', label: '#f2ede3', halo: 'rgba(10,16,26,0.9)' },
   hillshade: {
     shadow: '#04070c',

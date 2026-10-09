@@ -1,4 +1,4 @@
-import { accessOf } from '@twsim/sim-core';
+import { accessOf, type World } from '@twsim/sim-core';
 import type { Game } from '../game';
 import type { MapView } from '../map/MapView';
 import { byId, el, fmtDays, fmtInt, fmtPct } from './format';
@@ -29,6 +29,7 @@ export function renderRegionPanel(game: Game, map: MapView, i: number | null, sc
         el('dd', {}, fmtInt(r.population)),
         el('dt', {}, '人口密度'),
         el('dd', {}, `${fmtInt(r.population / Math.max(r.areaKm2, 0.01))} 人/km²`),
+        ...facilityRows(sim.world, i),
       ),
     );
     byId('region').querySelector('.close')!.addEventListener('click', () => map.select(null));
@@ -83,6 +84,7 @@ export function renderRegionPanel(game: Game, map: MapView, i: number | null, sc
       el('dd', {}, `${v('teams')} 隊${v('teamsEnroute') ? `（${v('teamsEnroute')} 隊在途）` : ''}`),
       el('dt', {}, '避難所'),
       el('dd', {}, shelterState),
+      ...facilityRows(sim.world, i),
     ),
     el(
       'div',
@@ -97,4 +99,18 @@ export function renderRegionPanel(game: Game, map: MapView, i: number | null, sc
     el('ul', { class: 'roads' }, ...roads),
   );
   byId('region').querySelector('.close')!.addEventListener('click', () => map.select(null));
+}
+
+/** 世界檔有設施資料時，列出區內醫院與避難收容處所的數量與容量 */
+function facilityRows(world: World, i: number): HTMLElement[] {
+  const rows: HTMLElement[] = [];
+  const add = (kind: string, label: string, unit: string) => {
+    if (!world.facilities?.some((f) => f.kind === kind)) return;
+    const list = world.facilities.filter((f) => f.kind === kind && f.region === i);
+    const cap = list.reduce((sum, f) => sum + (f.capacity ?? 0), 0);
+    rows.push(el('dt', {}, label), el('dd', {}, `${list.length} 處${cap ? `（${fmtInt(cap)} ${unit}）` : ''}`));
+  };
+  add('hospital', '醫院', '床');
+  add('shelter', '收容處所', '人');
+  return rows;
 }

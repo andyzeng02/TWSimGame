@@ -48,6 +48,7 @@
 | `regions[]` | 每區：行政區代碼、名稱、代表點、面積、人口、其他屬性、外框多邊形 |
 | `edges[]` | 相鄰區之間的連線（模擬用：傷患轉送、通行率） |
 | `faults[]` | 斷層線（地震劇本的震源） |
+| `facilities[]` | 選用。設施點：種類（`hospital`、`shelter`）、名稱、座標、所在區、容量 |
 
 `meta.sources` 記錄每份來源資料的用途、提供單位、檔名、版本與授權（資料管線自動產生，版本從檔名的民國日期讀出；`draft: true` 表示暫用約略值），`meta.builtAt` 是產生日期。畫面上的「關於」頁（`ui/about.ts`）會列出這些來源，加上 `map/config.ts` 的 `MAP_SOURCES`（地圖用的線上服務與程式庫）。
 
@@ -78,7 +79,7 @@
 6. 區界 `districts-casing` + `districts-line`
 7. 山與水的名稱：主要河川 `waterway_major_label`、湖泊 `lake_name`（`config.ts` 的 `LAKES`）、山峰 `mountain_peak_dot` / `mountain_peak_label`（名稱＋高度）
 8. 底圖的地名標籤（已改成中文）、等高線高度 `contour-labels`
-9. 區名 `district-labels`、斷層 `faults`、搜救隊 `teams`
+9. 區名 `district-labels`、斷層 `faults`、醫院與避難所 `facility-dots` / `facility-labels`（世界檔沒有醫院時改用 OSM 醫院點 `osm-hospitals`；指揮模式才顯示）、搜救隊 `teams`
 
 時段：`MapView.setTimeOfDay()` 依 `config.ts` 的 `TIMES` 換天空、光線（`setLight`）、山體陰影方向與配色（清晨、黃昏是白天配色混暖色；夜晚用 `NIGHT_PALETTE`）。只改 paint 屬性、不重建樣式；改完要清掉地形貼圖快取（`freeRtt`），樣式也關掉 paint 漸變，否則地表會殘留舊顏色。
 

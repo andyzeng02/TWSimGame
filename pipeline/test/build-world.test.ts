@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { lonLatToTm2, pointInRings, type XY } from '@twsim/geo';
-import { buildWorld, describeSources, InputError, readFeatures, rocDateIn } from '../build-world';
+import { buildWorld, describeSources, InputError, readFacilities, readFeatures, rocDateIn } from '../build-world';
 import { writeDbf, writeShp } from '../../packages/geo/test/writers';
 
 /** 以經緯度描述的方塊，輸出成 TM2 公尺座標（模擬國土測繪中心的 TM2 版本） */
@@ -178,5 +178,61 @@ describe('資料來源（ROADMAP 2.4）', () => {
     const w = buildWorld({ boundaries: fakeBoundaries(), sourceNote: '', sources, builtAt: '2026-10-09' });
     assert.equal(w.meta.builtAt, '2026-10-09');
     assert.deepEqual(w.meta.sources, sources);
+  });
+});
+
+describe('設施點（ROADMAP 2.3）', () => {
+  const world = buildWorld({ boundaries: fakeBoundaries(), sourceNote: '' });
+  const idx = (name: string) => world.regions.findIndex((r) => r.name === name);
+
+  it('讀避難收容處所：經緯度、容量、只留高雄、海岸邊的點歸到最近的區', () => {
+    const csv = [
+      '序號,縣市及鄉鎮市區,避難收容處所名稱,經度,緯度,預計收容人數',
+      '1,高雄市三民區,三民國小,120.32,22.67,"1,200"',
+      '2,高雄市旗津區,旗津活動中心,120.2705,22.6005,300',
+      '3,臺南市東區,大學國小,120.25,23.05,500',
+      '4,高雄市苓雅區,沒有座標,,,100',
+    ].join('\n');
+    const logs: string[] = [];
+    const f = readFacilities(csv, 'shelter', world.regions, { log: (m) => logs.push(m) });
+    assert.deepEqual(
+      f.map((x) => [x.name, world.regions[x.region].name, x.capacity]),
+      [
+        ['三民國小', '三民區', 1200],
+        ['旗津活動中心', '旗津區', 300],
+      ],
+    );
+    assert.ok(f.every((x) => x.kind === 'shelter'));
+    assert.ok(logs.some((m) => m.includes('1 筆沒有座標')));
+  });
+
+  it('讀醫院：TWD97 座標自動轉換，沒有容量欄也可以', () => {
+    const [x, y] = lonLatToTm2(120.32, 22.62);
+    const csv = ['醫院名稱,TWD97X,TWD97Y', `苓雅醫院,${x},${y}`].join('\n');
+    const f = readFacilities(csv, 'hospital', world.regions);
+    assert.equal(f.length, 1);
+    assert.equal(f[0].region, idx('苓雅區'));
+    assert.equal(f[0].capacity, undefined);
+    assert.ok(Math.abs(f[0].at[0] - 120.32) < 1e-4 && Math.abs(f[0].at[1] - 22.62) < 1e-4);
+  });
+
+  it('找不到經緯度欄時列出實際欄位', () => {
+    assert.throws(() => readFacilities('名稱,地址\n甲,某路1號', 'shelter', world.regions), /實際欄位：名稱, 地址/);
+  });
+
+  it('寫進世界檔並通過檢查', () => {
+    const w = buildWorld({
+      boundaries: fakeBoundaries(),
+      sourceNote: '',
+      sheltersCsv: '名稱,經度,緯度\n三民國小,120.32,22.67',
+      hospitalsCsv: '名稱,經度,緯度,病床數\n苓雅醫院,120.32,22.62,450',
+    });
+    assert.deepEqual(
+      w.facilities?.map((f) => [f.kind, f.name, f.capacity]),
+      [
+        ['hospital', '苓雅醫院', 450],
+        ['shelter', '三民國小', undefined],
+      ],
+    );
   });
 });

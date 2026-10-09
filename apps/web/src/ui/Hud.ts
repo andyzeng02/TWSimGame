@@ -44,6 +44,8 @@ export class Hud {
       const box = byId<HTMLInputElement>(id);
       box.addEventListener('change', () => this.syncToggles('buildings', box.checked));
     }
+    const fac = byId<HTMLInputElement>('facilities');
+    fac.addEventListener('change', () => map.setFacilities(fac.checked));
     byId('to-command').addEventListener('click', () => this.setScene(false));
     byId('to-scene').addEventListener('click', () => this.setScene(true));
     new SceneBar(map);

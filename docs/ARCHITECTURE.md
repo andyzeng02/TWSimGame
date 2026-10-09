@@ -88,6 +88,7 @@
 | AWS Terrain Tiles | 高程 | Open Data，需標示 | 同上 |
 | 國土測繪中心 | 行政區界線 | 政府資料開放授權條款 | 每年更新，需重跑管線 |
 | GitHub Pages | 線上版網頁（`main` 自動部署） | 公開 repo 免費 | 網址公開；打包內容任何人可讀，不可放金鑰 |
+| GoatCounter | 線上版瀏覽統計（`apps/web/index.html`） | 非商業免費、不用 cookie | 外部腳本；被擋時遊戲照常運作，只是不計數 |
 
 ## 已知技術債
 

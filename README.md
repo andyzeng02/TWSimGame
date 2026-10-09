@@ -10,6 +10,8 @@
 推送到 `main` 後會自動部署到 GitHub Pages：https://andyzeng02.github.io/TWSimGame/
 （第一次使用前要在 GitHub → Settings → Pages 把 Source 設成「GitHub Actions」；設定檔在 `.github/workflows/pages.yml`）
 
+瀏覽統計用 [GoatCounter](https://www.goatcounter.com)（不用 cookie，本機開發不計入），數據看 https://andyzeng02.goatcounter.com 。
+
 ## 快速開始（Windows）
 
 需要 [Node.js 22 以上](https://nodejs.org/)。

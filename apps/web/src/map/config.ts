@@ -16,9 +16,9 @@ export const PALETTE = {
   /** 陸地底色 */
   land: '#f2ecdc',
   /** 海、湖、河 */
-  water: '#9cc7d6',
-  waterLabel: '#3d6a80',
-  river: '#8bbdd0',
+  water: '#84bbe4',
+  waterLabel: '#2f5f86',
+  river: '#78b0dc',
   /** 綠地：森林最深，草地、公園較淺 */
   wood: '#a9c995',
   grass: '#c9dcaa',

@@ -22,6 +22,7 @@
 
 - [ ] 建 git 版本控制，推到 GitHub 私有 repo（之後每個功能一個分支）
 - [ ] GitHub Actions：每次推送自動跑 `npm test` 與 `npm run typecheck`
+- [x] GitHub Pages：推送到 `main` 自動部署線上版（`.github/workflows/pages.yml`）
 - [ ] 把設計文件的 .docx 移到 `docs/`，或只保留線上版，避免兩份不同步
 
 驗收：在 GitHub 上看得到綠色勾勾。

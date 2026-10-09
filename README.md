@@ -5,6 +5,11 @@
 
 > 本遊戲為虛構情境，非地震預測；數值為遊戲調校用，不代表真實災情。
 
+## 線上版
+
+推送到 `main` 後會自動部署到 GitHub Pages：https://andyzeng02.github.io/TWSimGame/
+（第一次使用前要在 GitHub → Settings → Pages 把 Source 設成「GitHub Actions」；設定檔在 `.github/workflows/pages.yml`）
+
 ## 快速開始（Windows）
 
 需要 [Node.js 22 以上](https://nodejs.org/)。

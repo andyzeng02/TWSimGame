@@ -17,15 +17,16 @@
 | 地震劇本 | 第一版可玩；數值用草稿世界調過，尚未用真實人口重調 |
 | 資料管線 | 完成：直接讀國土測繪中心 SHP；人口與斷層尚未接真實資料 |
 | 測試 | 39 個；五個套件型別檢查通過 |
+| 線上版 | GitHub Pages：推送到 `main` 自動部署；GoatCounter 瀏覽統計 |
 
 ## 階段 0：開發基礎（約 1 週）
 
-- [ ] 建 git 版本控制，推到 GitHub 私有 repo（之後每個功能一個分支）
-- [ ] GitHub Actions：每次推送自動跑 `npm test` 與 `npm run typecheck`
+- [x] 建 git 版本控制，推到 GitHub（公開 repo `andyzeng02/TWSimGame`；之後每個功能一個分支）
+- [x] GitHub Actions：每次推送自動跑 `npm test` 與 `npm run typecheck`（`.github/workflows/ci.yml`）
 - [x] GitHub Pages：推送到 `main` 自動部署線上版（`.github/workflows/pages.yml`）
-- [ ] 把設計文件的 .docx 移到 `docs/`，或只保留線上版，避免兩份不同步
+- [x] 設計文件 .docx 是私人文件，不進版控（`.gitignore` 排除 `*.docx`）；repo 內以 `docs/` 為準
 
-驗收：在 GitHub 上看得到綠色勾勾。
+驗收：在 GitHub 上看得到綠色勾勾。（2026-10-09 CI 與 Pages 皆通過）
 
 ## 階段 1：地景精修（約 2–4 週，目前重點）
 
@@ -62,9 +63,9 @@
 ## 階段 4：公開試玩（約 2–3 週）
 
 - [ ] **4.1 自架圖磚**：把台灣範圍的向量圖磚做成 PMTiles，放在 Cloudflare R2 或同類服務（費用低），不再依賴公共伺服器
-- [ ] **4.2 部署網頁版**：Cloudflare Pages 或 GitHub Pages，綁自己的網域
+- [ ] **4.2 部署網頁版**：已用 GitHub Pages 上線（https://andyzeng02.github.io/TWSimGame/）；剩綁自己的網域
 - [ ] **4.3 關於頁**：資料來源、授權、免責聲明
-- [ ] **4.4 回饋與分析**：簡單的使用統計與回饋表單
+- [ ] **4.4 回饋與分析**：使用統計已接 GoatCounter；剩回饋表單
 - [ ] **4.5 社群發布**：Threads、Facebook、巴哈姆特、PTT
 
 驗收：陌生人能用網址打開並玩完一局。

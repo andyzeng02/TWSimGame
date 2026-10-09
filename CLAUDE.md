@@ -66,4 +66,5 @@ npm run build-world -- --boundaries pipeline/raw/TOWN_MOI_1140318.shp   # 重產
 - 單位：1 tick = 1 小時；距離公里；物資以天計；秩序、通行率為 0–1。
 - 測試放在 `packages/*/test/` 與 `pipeline/test/`，用 `node:test`。
 - 遊戲畫面保留免責聲明：「本遊戲為虛構情境，非地震預測」。
+- 使用者希望每次多做幾個步驟：能一起完成的 ROADMAP 項目就一次做完，最後一起推送、一起回報。
 - 使用者用 Windows（PowerShell），專案在 `E:\ClaudeCode\TWSimGame`；指令與路徑說明要能在 Windows 上照做。

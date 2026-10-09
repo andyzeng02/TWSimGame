@@ -1,5 +1,5 @@
 import type { FilterSpecification, LayerSpecification, StyleSpecification } from 'maplibre-gl';
-import { PALETTE } from '../config';
+import { LAKES, MAJOR_RIVERS, PALETTE } from '../config';
 import base from './base.json';
 
 /**
@@ -120,11 +120,124 @@ export function buildStyle(): StyleSpecification {
         paint: { 'fill-color': P.farmland, 'fill-opacity': 0.8, 'fill-antialias': false },
       });
     }
+
+    // 主要河川：比一般河流粗，拉遠也看得到（寬河段另有水域面覆蓋，顯示真實寬度）
+    if (id === 'waterway_river') {
+      layers.push({
+        id: 'waterway_major',
+        type: 'line',
+        source: 'openmaptiles',
+        'source-layer': 'waterway',
+        filter: isMajorRiver,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': P.river,
+          'line-width': ['interpolate', ['exponential', 1.3], ['zoom'], 8, 1.6, 11, 3, 14, 6, 18, 14],
+        },
+      });
+    }
   }
+
+  // 山與水的名稱（ROADMAP 1.3），放在城鎮名稱之下
+  style.sources['lake-names'] = {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: LAKES.map((l) => ({
+        type: 'Feature',
+        properties: { name: l.name },
+        geometry: { type: 'Point', coordinates: l.at },
+      })),
+    },
+  };
+  const at = layers.findIndex((l) => l.id === 'label_other');
+  layers.splice(at < 0 ? layers.length : at, 0, ...nameLayers());
 
   style.layers = layers;
   delete style.sources.ne2_shaded;
   return style;
+}
+
+const isMajorRiver = ['in', ['get', 'name'], ['literal', MAJOR_RIVERS]] as FilterSpecification;
+
+function nameLayers(): LayerSpecification[] {
+  const P = PALETTE;
+  const halo = { 'text-halo-color': P.labelHalo, 'text-halo-width': 1.6, 'text-halo-blur': 0.5 };
+  const isPeak = ['in', ['get', 'class'], ['literal', ['peak', 'volcano']]] as FilterSpecification;
+  return [
+    {
+      id: 'waterway_major_label',
+      type: 'symbol',
+      source: 'openmaptiles',
+      'source-layer': 'waterway',
+      minzoom: 9,
+      filter: isMajorRiver,
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 9, 12, 14, 16],
+        'symbol-placement': 'line',
+        'symbol-spacing': 400,
+        'text-letter-spacing': 0.3,
+        'text-max-angle': 30,
+      },
+      paint: { 'text-color': P.waterLabel, ...halo },
+    },
+    {
+      id: 'lake_name',
+      type: 'symbol',
+      source: 'lake-names',
+      minzoom: 10,
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 10, 12, 15, 16],
+        'text-letter-spacing': 0.2,
+      },
+      paint: { 'text-color': P.waterLabel, ...halo },
+    },
+    {
+      id: 'mountain_peak_dot',
+      type: 'circle',
+      source: 'openmaptiles',
+      'source-layer': 'mountain_peak',
+      minzoom: 10,
+      filter: isPeak,
+      paint: {
+        'circle-radius': 3,
+        'circle-color': P.peak.dot,
+        'circle-stroke-color': P.labelHalo,
+        'circle-stroke-width': 1.2,
+        'circle-pitch-alignment': 'viewport',
+      },
+    },
+    {
+      id: 'mountain_peak_label',
+      type: 'symbol',
+      source: 'openmaptiles',
+      'source-layer': 'mountain_peak',
+      minzoom: 10,
+      filter: isPeak,
+      layout: {
+        // 山名 + 高度（公尺）
+        'text-field': [
+          'format',
+          ['coalesce', ['get', 'name'], ''],
+          {},
+          '\n',
+          {},
+          ['concat', ['to-string', ['get', 'ele']], ' m'],
+          { 'font-scale': 0.8 },
+        ],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 14, 14],
+        'text-anchor': 'top',
+        'text-offset': [0, 0.5],
+        'symbol-sort-key': ['-', ['coalesce', ['get', 'ele'], 0]],
+      },
+      paint: { 'text-color': P.peak.label, ...halo },
+    },
+  ];
 }
 
 /** 依圖層名稱判斷道路等級，回傳主色或外框色；不是道路回傳 undefined */

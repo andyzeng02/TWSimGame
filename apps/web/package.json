@@ -11,6 +11,7 @@
   "dependencies": {
     "@twsim/rules-game": "*",
     "@twsim/sim-core": "*",
+    "maplibre-contour": "^0.1.1",
     "maplibre-gl": "^5.0.0"
   },
   "devDependencies": {

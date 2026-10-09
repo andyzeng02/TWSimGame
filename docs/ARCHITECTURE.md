@@ -68,18 +68,22 @@
 
 圖層由下往上：
 
-1. 自有樣式底圖：海、陸地、森林、草地、農地、河流、湖泊、道路
+1. 自有樣式底圖：海、陸地、森林、草地、農地、河流（主要河川 `waterway_major` 加粗）、湖泊、道路
 2. 山體陰影（hillshade，DEM）
-3. 3D 建築（底圖內建，zoom 14 以上）
-4. 災情著色 `districts-fill`（feature-state；觀景模式隱藏）
-5. 區界 `districts-casing` + `districts-line`
-6. 底圖的地名標籤（已改成中文）
-7. 區名 `district-labels`、斷層 `faults`、搜救隊 `teams`
+3. 等高線 `contour-lines`（zoom 11 起；`maplibre-contour` 在 worker 裡從同一份 DEM 即時計算，間距在 `config.ts` 的 `CONTOUR`）
+4. 3D 建築（底圖內建，zoom 14 以上）
+5. 災情著色 `districts-fill`（feature-state；觀景模式隱藏）
+6. 區界 `districts-casing` + `districts-line`
+7. 山與水的名稱：主要河川 `waterway_major_label`、湖泊 `lake_name`（`config.ts` 的 `LAKES`）、山峰 `mountain_peak_dot` / `mountain_peak_label`（名稱＋高度）
+8. 底圖的地名標籤（已改成中文）、等高線高度 `contour-labels`
+9. 區名 `district-labels`、斷層 `faults`、搜救隊 `teams`
+
+地標導覽：`MapView.startTour()` 依 `config.ts` 的 `LANDMARKS` 依序 `flyTo`，節奏在 `TOUR`；使用者動地圖就自動停止。
 
 地形用 `setTerrain` 套在整張地圖上，所有圖層會自動貼在地表。天空與遠景霧氣用 `setSky`。
 
 `MapView` 對外只提供這些方法，不含任何遊戲規則：
-`select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`resetView`。
+`select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`resetView`、`startTour`、`stopTour`、`onTourStop`。
 
 ## 模擬（sim-core + rules-game）
 

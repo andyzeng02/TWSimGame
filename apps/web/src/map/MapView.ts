@@ -1,4 +1,5 @@
-import { Map as MLMap, NavigationControl, ScaleControl } from 'maplibre-gl';
+import { addProtocol, Map as MLMap, NavigationControl, ScaleControl } from 'maplibre-gl';
+import mlcontour from 'maplibre-contour';
 import type {
   ExpressionSpecification,
   FilterSpecification,
@@ -9,7 +10,7 @@ import type {
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { World } from '@twsim/sim-core';
-import { DEM_ATTRIBUTION, DEM_TILES, MAP_CONFIG, PALETTE, SKY } from './config';
+import { CONTOUR, DEM_ATTRIBUTION, DEM_TILES, LANDMARKS, MAP_CONFIG, PALETTE, SKY, TOUR } from './config';
 import { buildStyle } from './style';
 
 /**
@@ -27,6 +28,16 @@ export type Progress = (message: string, fraction: number) => void;
 const SEL = ['boolean', ['feature-state', 'selected'], false] as ExpressionSpecification;
 const GAME_LAYERS = ['districts-fill', 'faults', 'teams'];
 
+/** 等高線：在瀏覽器裡從 DEM 圖磚即時算出（maplibre-contour，在背景 worker 執行） */
+let contourDem: InstanceType<typeof mlcontour.DemSource> | null = null;
+function contourSource() {
+  if (!contourDem) {
+    contourDem = new mlcontour.DemSource({ url: DEM_TILES, encoding: 'terrarium', maxzoom: 13, worker: true });
+    contourDem.setupMaplibre({ addProtocol: addProtocol as never });
+  }
+  return contourDem;
+}
+
 export class MapView {
   readonly map: MLMap;
   attribution = '';
@@ -35,9 +46,13 @@ export class MapView {
   private selected: number | null = null;
   private handlers: ((i: number | null) => void)[] = [];
   private regionBounds: [[number, number], [number, number]][] = [];
+  /** 地標導覽的代號；每次開始或停止就加一，舊的導覽看到代號變了就結束 */
+  private tourId = 0;
+  private touring = false;
 
   private constructor(container: HTMLElement, private world: World) {
     const { start, bounds, localFont } = MAP_CONFIG;
+    contourSource();
     this.map = new MLMap({
       container,
       style: buildStyle(),
@@ -136,9 +151,51 @@ export class MapView {
 
   /** 回到開場鏡頭 */
   resetView() {
+    this.stopTour();
     const { start } = MAP_CONFIG;
     this.map.flyTo({ ...start, duration: 1800 });
   }
+
+  get isTouring() {
+    return this.touring;
+  }
+
+  /** 地標導覽：依序飛到 config 的 LANDMARKS；onStep 收到目前地標名稱，結束時收到 null */
+  async startTour(onStep: (name: string | null) => void) {
+    const id = ++this.tourId;
+    this.touring = true;
+    const alive = () => id === this.tourId;
+    for (const lm of LANDMARKS) {
+      if (!alive()) return;
+      onStep(lm.name);
+      // 正常是等飛行結束；保險起見最多等飛行時間再多 1 秒
+      const arrived = Promise.race([
+        new Promise((r) => this.map.once('moveend', r)),
+        new Promise((r) => setTimeout(r, TOUR.flyMs + 1000)),
+      ]);
+      this.map.flyTo({ center: lm.center, zoom: lm.zoom, pitch: lm.pitch, bearing: lm.bearing, duration: TOUR.flyMs, essential: true });
+      await arrived;
+      await new Promise((r) => setTimeout(r, TOUR.holdMs));
+    }
+    if (!alive()) return;
+    this.touring = false;
+    onStep(null);
+  }
+
+  /** 停止導覽（使用者自己拖曳、縮放地圖時也會自動停止） */
+  stopTour() {
+    if (!this.touring) return;
+    this.tourId++;
+    this.touring = false;
+    this.map.stop();
+    for (const h of this.tourStopHandlers) h();
+  }
+
+  onTourStop(handler: () => void) {
+    this.tourStopHandlers.push(handler);
+  }
+
+  private tourStopHandlers: (() => void)[] = [];
 
   // ---------- 建立 ----------
 
@@ -180,6 +237,54 @@ export class MapView {
       },
       before,
     );
+
+    // 等高線（ROADMAP 1.2）：細線＋每 250 公尺粗線，粗線標高度
+    const C = PALETTE.contour;
+    const major = ['==', ['get', 'level'], 1] as ExpressionSpecification;
+    map.addSource('contours', {
+      type: 'vector',
+      tiles: [
+        contourSource().contourProtocolUrl({
+          thresholds: CONTOUR.thresholds,
+          elevationKey: 'ele',
+          levelKey: 'level',
+          contourLayer: 'contours',
+        }),
+      ],
+      maxzoom: 15,
+    });
+    map.addLayer(
+      {
+        id: 'contour-lines',
+        type: 'line',
+        source: 'contours',
+        'source-layer': 'contours',
+        minzoom: CONTOUR.minzoom,
+        layout: { 'line-join': 'round' },
+        paint: {
+          'line-color': ['case', major, C.major, C.minor],
+          'line-width': ['case', major, 1.1, 0.5],
+          'line-opacity': ['interpolate', ['linear'], ['zoom'], CONTOUR.minzoom, 0.3, 13, 0.65],
+        },
+      },
+      before,
+    );
+    map.addLayer({
+      id: 'contour-labels',
+      type: 'symbol',
+      source: 'contours',
+      'source-layer': 'contours',
+      minzoom: 12,
+      filter: major as FilterSpecification,
+      layout: {
+        'symbol-placement': 'line',
+        'symbol-spacing': 320,
+        'text-field': ['concat', ['to-string', ['get', 'ele']], ' m'],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': 10,
+      },
+      paint: { 'text-color': C.label, 'text-halo-color': PALETTE.labelHalo, 'text-halo-width': 1.2 },
+    });
 
     map.setSky(SKY as unknown as SkySpecification);
   }
@@ -325,6 +430,10 @@ export class MapView {
 
   private setupInteraction() {
     const map = this.map;
+    // 使用者自己動地圖（拖曳、縮放、旋轉）就停止導覽
+    map.on('movestart', (e) => {
+      if (e.originalEvent) this.stopTour();
+    });
     const pick = (features: MapGeoJSONFeature[]) => (features.length ? Number(features[0].id) : null);
     map.on('click', (e) => {
       const hit = map.queryRenderedFeatures(e.point, { layers: ['district-labels', 'districts-fill'] });

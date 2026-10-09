@@ -55,6 +55,10 @@ export const PALETTE = {
     town: [9, 12, 14, 18],
     village: [10, 11, 14, 15],
   },
+  /** 等高線（主曲線每 250 公尺，較粗並標高度） */
+  contour: { minor: '#9c8f72', major: '#7d6f52', label: '#6b5d42' },
+  /** 山峰點與名稱 */
+  peak: { dot: '#5b6b46', label: '#3f4a30' },
   /** 山體陰影 */
   hillshade: {
     shadow: '#5d6b58',
@@ -98,3 +102,40 @@ export const SKY = {
   'fog-ground-blend': 0.45,
   'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0],
 };
+
+/**
+ * 等高線（ROADMAP 1.2）：縮放 → [細線間距, 粗線間距]（公尺）。
+ * 拉遠時加大間距，避免山區線條糊成一片；zoom 13 以上是 50／250 公尺。
+ */
+export const CONTOUR = {
+  thresholds: { 11: [200, 1000], 12: [100, 500], 13: [50, 250] } as Record<number, [number, number]>,
+  /** 低於這個縮放不畫等高線 */
+  minzoom: 11,
+};
+
+/** 主要河川（ROADMAP 1.3）：加粗並提早顯示名稱。OSM 上的名稱可能有別名，一併列入 */
+export const MAJOR_RIVERS = ['高屏溪', '二仁溪', '楠梓仙溪', '旗山溪', '荖濃溪', '愛河'];
+
+/** 湖泊名稱（ROADMAP 1.3）：底圖不一定有湖名，自己標 [經度, 緯度] */
+export const LAKES: { name: string; at: [number, number] }[] = [
+  { name: '蓮池潭', at: [120.2953, 22.6808] },
+  { name: '澄清湖', at: [120.3575, 22.6555] },
+  { name: '美濃湖', at: [120.5563, 22.9004] },
+];
+
+/** 地標導覽（ROADMAP 1.4）：依序飛覽的鏡頭。座標為約略值，看畫面再微調 */
+export const LANDMARKS: { name: string; center: [number, number]; zoom: number; pitch: number; bearing: number }[] = [
+  { name: '85 大樓與市中心', center: [120.3005, 22.6117], zoom: 15.2, pitch: 65, bearing: 35 },
+  { name: '旗津半島', center: [120.2735, 22.6045], zoom: 13.4, pitch: 58, bearing: 20 },
+  { name: '壽山', center: [120.2655, 22.6390], zoom: 13.3, pitch: 62, bearing: 110 },
+  { name: '蓮池潭', center: [120.2953, 22.6808], zoom: 14.6, pitch: 60, bearing: 0 },
+  { name: '澄清湖', center: [120.3575, 22.6555], zoom: 14.2, pitch: 58, bearing: 330 },
+  { name: '佛光山', center: [120.4425, 22.7560], zoom: 14.4, pitch: 62, bearing: 250 },
+  { name: '美濃', center: [120.5450, 22.8980], zoom: 13.2, pitch: 60, bearing: 40 },
+  { name: '茂林山區', center: [120.6640, 22.8870], zoom: 12.6, pitch: 70, bearing: 60 },
+  { name: '藤枝', center: [120.7620, 23.0600], zoom: 12.6, pitch: 70, bearing: 20 },
+  { name: '遠眺玉山', center: [120.8300, 23.2700], zoom: 10.6, pitch: 75, bearing: 35 },
+];
+
+/** 地標導覽的節奏（毫秒）：飛行時間、每站停留 */
+export const TOUR = { flyMs: 5000, holdMs: 3000 };

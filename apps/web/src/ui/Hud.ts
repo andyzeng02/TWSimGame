@@ -45,6 +45,8 @@ export class Hud {
     byId('to-command').addEventListener('click', () => this.setScene(false));
     byId('to-scene').addEventListener('click', () => this.setScene(true));
     byId('reset-view').addEventListener('click', () => map.resetView());
+    byId('tour').addEventListener('click', () => (map.isTouring ? map.stopTour() : this.startTour()));
+    map.onTourStop(() => this.showTourStep(null));
     map.onSelect((i) => {
       this.selected = i;
       this.renderRegion();
@@ -60,7 +62,21 @@ export class Hud {
     this.setScene(true);
   }
 
+  private startTour() {
+    this.map.select(null, false);
+    void this.map.startTour((name) => this.showTourStep(name));
+  }
+
+  /** 導覽中：按鈕變成「停止」，畫面下方顯示地標名稱 */
+  private showTourStep(name: string | null) {
+    byId('tour').textContent = name ? '停止導覽 ■' : '地標導覽 ▶';
+    const caption = byId('tour-caption');
+    caption.hidden = !name;
+    caption.textContent = name ?? '';
+  }
+
   private setScene(scene: boolean) {
+    if (!scene) this.map.stopTour();
     this.scene = scene;
     document.body.classList.toggle('scene', scene);
     this.map.setSceneMode(scene);

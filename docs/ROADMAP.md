@@ -65,7 +65,7 @@
 - [ ] **4.1 自架圖磚**：把台灣範圍的向量圖磚做成 PMTiles，放在 Cloudflare R2 或同類服務（費用低），不再依賴公共伺服器
 - [ ] **4.2 部署網頁版**：已用 GitHub Pages 上線（https://andyzeng02.github.io/TWSimGame/）；剩綁自己的網域
 - [x] **4.3 關於頁**：資料來源、授權、免責聲明（工具列「關於」；`ui/about.ts`）
-- [ ] **4.4 回饋與分析**：使用統計已接 GoatCounter；剩回饋表單
+- [x] **4.4 回饋與分析**：使用統計已接 GoatCounter；回饋用預先填好資訊的 GitHub Issue（「關於」頁與結算畫面；`ui/feedback.ts`，需要 GitHub 帳號，之後可換成表單服務）
 - [ ] **4.5 社群發布**：Threads、Facebook、巴哈姆特、PTT
 
 驗收：陌生人能用網址打開並玩完一局。

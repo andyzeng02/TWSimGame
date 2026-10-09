@@ -1,6 +1,7 @@
 import type { EqAction } from '@twsim/rules-game';
 import type { World } from '@twsim/sim-core';
 import type { Game, TickRecord } from '../game';
+import { feedbackUrl } from './feedback';
 import { byId, el, fmtInt, fmtPct } from './format';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -47,6 +48,16 @@ export function renderEndCard(game: Game) {
       decisions(game.history, game.sim.world),
       el('p', { class: 'quiet' }, `種子 ${game.seedValue}（相同種子會重現同一場地震）`),
       again,
+      el(
+        'a',
+        {
+          class: 'feedback-link',
+          href: feedbackUrl({ 種子: String(game.seedValue), 評級: end.grade, 分數: end.score.toFixed(1) }),
+          target: '_blank',
+          rel: 'noopener',
+        },
+        '回饋這一局',
+      ),
     ),
   );
 }

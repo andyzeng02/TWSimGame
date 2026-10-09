@@ -23,6 +23,7 @@ apps/web/src/
   ui/regionPanel.ts  右側行政區面板（觀景：基本資料；指揮：災情與行動）
   ui/endCard.ts      結算畫面（變化圖、決策時間軸）
   ui/tutorial.ts     第一次進指揮模式的教學引導
+  ui/feedback.ts     意見回饋連結（預先填好的 GitHub Issue）
   ui/layers.ts       災情圖層：模擬狀態 → 每區 0–1 嚴重度
   ui/loading.ts      載入畫面的高雄剪影
   ui/about.ts        「關於」頁：免責聲明、資料來源與授權

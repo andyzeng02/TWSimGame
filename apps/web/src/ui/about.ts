@@ -1,5 +1,6 @@
 import type { World } from '@twsim/sim-core';
 import { MAP_SOURCES } from '../map/config';
+import { feedbackUrl } from './feedback';
 import { byId, el } from './format';
 
 const REPO_URL = 'https://github.com/andyzeng02/TWSimGame';
@@ -62,6 +63,7 @@ export function setupAbout(world: World) {
         `世界檔產生日期：${world.meta.builtAt ?? '未記錄'}。標示「暫用」的項目是約略值，之後會換成政府開放資料。`,
       ),
       el('p', { class: 'quiet' }, '原始碼：', link(REPO_URL, REPO_URL)),
+      el('p', {}, el('a', { class: 'button-link', href: feedbackUrl(), target: '_blank', rel: 'noopener' }, '意見回饋（GitHub）')),
     ),
   );
 

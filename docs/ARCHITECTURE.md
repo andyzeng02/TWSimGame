@@ -88,7 +88,7 @@
 
 地標導覽：`MapView.startTour()` 依 `config.ts` 的 `LANDMARKS` 依序 `flyTo`，節奏在 `TOUR`；使用者動地圖就自動停止。
 
-地形用 `setTerrain` 套在整張地圖上，所有圖層會自動貼在地表。天空與遠景霧氣用 `setSky`。
+地形用 `setTerrain` 套在整張地圖上，所有圖層會自動貼在地表。高程圖磚含海底地形，透過自訂協定 `flatsea://` 在瀏覽器裡把負高程改成 0（`MAP_CONFIG.flattenSea`），海面才會是平的；等高線也只畫 0 公尺以上。天空與遠景霧氣用 `setSky`。
 
 `MapView` 對外只提供這些方法，不含任何遊戲規則：
 `select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`resetView`、`startTour`、`stopTour`、`onTourStop`、`setTimeOfDay`、`capture`。

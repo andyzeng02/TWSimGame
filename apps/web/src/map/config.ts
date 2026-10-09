@@ -74,6 +74,11 @@ export const DEM_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrariu
 export const DEM_ATTRIBUTION = '高程 © Mapzen Terrain Tiles（AWS Open Data）';
 
 export const MAP_CONFIG = {
+  /**
+   * 海面拉平：高程圖磚含海底地形，3D 時海面會凹進海溝、還有資料接縫的直線。
+   * 開啟後低於海平面一律當 0 公尺（地圖只在瀏覽器裡改，不影響原始資料）。
+   */
+  flattenSea: true,
   /** 地形高度誇張倍率（1 = 真實比例） */
   exaggeration: 1.5,
   /** 開場鏡頭：從高雄市區上空往東北看向山區 */

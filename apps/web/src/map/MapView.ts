@@ -39,6 +39,39 @@ export type Progress = (message: string, fraction: number) => void;
 const SEL = ['boolean', ['feature-state', 'selected'], false] as ExpressionSpecification;
 const GAME_LAYERS = ['districts-fill', 'faults', 'teams'];
 
+/**
+ * 海面拉平：註冊 flatsea:// 協定，下載高程圖磚後把負高程改成 0 再交給 MapLibre。
+ * Terrarium 編碼：高度 = R×256 + G + B/256 − 32768，所以 R < 128 就是負值。
+ */
+let flatSeaReady = false;
+function demTiles(): string {
+  if (!MAP_CONFIG.flattenSea) return DEM_TILES;
+  if (!flatSeaReady) {
+    flatSeaReady = true;
+    addProtocol('flatsea', async (params, abort) => {
+      const res = await fetch(params.url.replace('flatsea://', 'https://'), { signal: abort.signal });
+      if (!res.ok) throw new Error(`高程圖磚下載失敗：${res.status}`);
+      const bmp = await createImageBitmap(await res.blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+      const canvas = new OffscreenCanvas(bmp.width, bmp.height);
+      const g = canvas.getContext('2d', { willReadFrequently: true })!;
+      g.drawImage(bmp, 0, 0);
+      const img = g.getImageData(0, 0, bmp.width, bmp.height);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] < 128) {
+          d[i] = 128;
+          d[i + 1] = 0;
+          d[i + 2] = 0;
+        }
+      }
+      g.putImageData(img, 0, 0);
+      const out = await canvas.convertToBlob({ type: 'image/png' });
+      return { data: await out.arrayBuffer() };
+    });
+  }
+  return DEM_TILES.replace('https://', 'flatsea://');
+}
+
 /** 等高線：在瀏覽器裡從 DEM 圖磚即時算出（maplibre-contour，在背景 worker 執行） */
 let contourDem: InstanceType<typeof mlcontour.DemSource> | null = null;
 function contourSource() {
@@ -295,7 +328,7 @@ export class MapView {
     }
 
     // 地形（兩個來源分開，地形與陰影的快取互不干擾）
-    const dem = { type: 'raster-dem' as const, tiles: [DEM_TILES], tileSize: 256, encoding: 'terrarium' as const, maxzoom: 15 };
+    const dem = { type: 'raster-dem' as const, tiles: [demTiles()], tileSize: 256, encoding: 'terrarium' as const, maxzoom: 15 };
     map.addSource('terrain-dem', { ...dem, attribution: DEM_ATTRIBUTION });
     map.addSource('hillshade-dem', dem);
     map.setTerrain({ source: 'terrain-dem', exaggeration: MAP_CONFIG.exaggeration });
@@ -342,6 +375,8 @@ export class MapView {
         source: 'contours',
         'source-layer': 'contours',
         minzoom: this.lowPower ? MAP_CONFIG.lowPower.contourMinzoom : CONTOUR.minzoom,
+        // 只畫陸地（海底等深線不畫）
+        filter: ['>', ['get', 'ele'], 0] as FilterSpecification,
         layout: { 'line-join': 'round' },
         paint: {
           'line-color': ['case', major, C.major, C.minor],
@@ -357,7 +392,7 @@ export class MapView {
       source: 'contours',
       'source-layer': 'contours',
       minzoom: 12,
-      filter: major as FilterSpecification,
+      filter: ['all', major, ['>', ['get', 'ele'], 0]] as FilterSpecification,
       layout: {
         'symbol-placement': 'line',
         'symbol-spacing': 320,

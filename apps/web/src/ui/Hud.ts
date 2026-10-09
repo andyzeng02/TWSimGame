@@ -1,9 +1,9 @@
-import { accessOf } from '@twsim/sim-core';
 import type { Game } from '../game';
-import { DEFAULT_TIME, TIMES, type TimeKey } from '../map/config';
 import type { MapView } from '../map/MapView';
+import { renderEndCard } from './endCard';
 import { byId, el, fmtDays, fmtInt, fmtPct } from './format';
-import { shareScreenshot } from './screenshot';
+import { renderRegionPanel } from './regionPanel';
+import { SceneBar } from './sceneBar';
 import { LAYERS, type Layer } from './layers';
 
 const METRICS: { key: string; label: string; fmt: (x: number) => string; bad: (x: number) => boolean }[] = [
@@ -46,11 +46,7 @@ export class Hud {
     }
     byId('to-command').addEventListener('click', () => this.setScene(false));
     byId('to-scene').addEventListener('click', () => this.setScene(true));
-    byId('reset-view').addEventListener('click', () => map.resetView());
-    byId('tour').addEventListener('click', () => (map.isTouring ? map.stopTour() : this.startTour()));
-    this.setupTimePicker();
-    byId('screenshot').addEventListener('click', () => this.screenshot());
-    map.onTourStop(() => this.showTourStep(null));
+    new SceneBar(map);
     map.onSelect((i) => {
       this.selected = i;
       this.renderRegion();
@@ -64,44 +60,6 @@ export class Hud {
       if (e.code === 'KeyH') this.setScene(!this.scene);
     });
     this.setScene(true);
-  }
-
-  /** 時段選單：自動（依台灣現在時間，每 10 分鐘檢查一次）或固定時段 */
-  private setupTimePicker() {
-    const select = byId<HTMLSelectElement>('time');
-    select.append(new Option('自動', 'auto'));
-    for (const [key, t] of Object.entries(TIMES)) select.append(new Option(t.label, key));
-    select.value = DEFAULT_TIME;
-    const apply = () => this.map.setTimeOfDay(select.value === 'auto' ? timeNow() : (select.value as TimeKey));
-    select.addEventListener('change', apply);
-    setInterval(() => select.value === 'auto' && apply(), 10 * 60 * 1000);
-    apply();
-  }
-
-  private async screenshot() {
-    const button = byId<HTMLButtonElement>('screenshot');
-    button.disabled = true;
-    try {
-      const time = byId<HTMLSelectElement>('time');
-      const caption = byId('tour-caption');
-      const subtitle = !caption.hidden && caption.textContent ? caption.textContent : time.selectedOptions[0]?.text ?? '';
-      await shareScreenshot(await this.map.capture(), subtitle);
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  private startTour() {
-    this.map.select(null, false);
-    void this.map.startTour((name) => this.showTourStep(name));
-  }
-
-  /** 導覽中：按鈕變成「停止」，畫面下方顯示地標名稱 */
-  private showTourStep(name: string | null) {
-    byId('tour').textContent = name ? '停止導覽 ■' : '地標導覽 ▶';
-    const caption = byId('tour-caption');
-    caption.hidden = !name;
-    caption.textContent = name ?? '';
   }
 
   private setScene(scene: boolean) {
@@ -146,7 +104,7 @@ export class Hud {
 
     this.renderLog();
     this.renderRegion();
-    this.renderEnd();
+    renderEndCard(this.game);
   }
 
   private buildLayerButtons() {
@@ -166,6 +124,10 @@ export class Hud {
     draw();
   }
 
+  private renderRegion() {
+    renderRegionPanel(this.game, this.map, this.selected, this.scene);
+  }
+
   private renderLog() {
     const log = this.game.sim.state.log.slice(-40).reverse();
     byId('log').replaceChildren(
@@ -174,143 +136,4 @@ export class Hud {
       ),
     );
   }
-
-  private renderRegion() {
-    const panel = byId('right');
-    const i = this.selected;
-    if (i === null) {
-      panel.hidden = true;
-      return;
-    }
-    panel.hidden = false;
-    const { sim } = this.game;
-    const r = sim.world.regions[i];
-    if (this.scene) {
-      // 觀景模式只顯示基本資料
-      byId('region').replaceChildren(
-        el('div', { class: 'region-head' }, el('h3', {}, r.name), el('button', { class: 'close', title: '關閉' }, '×')),
-        el(
-          'dl',
-          {},
-          el('dt', {}, '面積'),
-          el('dd', {}, `${r.areaKm2.toLocaleString('zh-TW')} km²`),
-          el('dt', {}, '人口（約）'),
-          el('dd', {}, fmtInt(r.population)),
-          el('dt', {}, '人口密度'),
-          el('dd', {}, `${fmtInt(r.population / Math.max(r.areaKm2, 0.01))} 人/km²`),
-        ),
-      );
-      byId('region').querySelector('.close')!.addEventListener('click', () => this.map.select(null));
-      return;
-    }
-    const v = (k: string) => sim.state.vars[k][i];
-    const costs = this.game.rules.config.costs;
-    const ended = !!sim.state.ended;
-    const pendingHere = this.game.pending.filter((a) => 'region' in a && a.region === i).length;
-
-    const action = (label: string, cost: number, fn: () => void, disabled = false) => {
-      const b = el('button', { class: 'act' }, `${label}`, el('small', {}, `${cost} 點`));
-      if (disabled || ended || this.game.projectedCp() < cost) b.setAttribute('disabled', '');
-      b.addEventListener('click', fn);
-      return b;
-    };
-
-    const roads = sim.ctx.adj.incident[i].map((e) => {
-      const other = sim.world.regions[sim.ctx.adj.other(e, i)];
-      const s = sim.state.edgeStatus[e];
-      const repairing = !!sim.state.scalars[`repairing:${e}`];
-      const btn = action('搶修', costs.repairRoad, () => this.game.queue({ type: 'repairRoad', edge: e }), s >= 0.999 || repairing);
-      return el(
-        'li',
-        {},
-        el('span', {}, `往${other.name}`),
-        el('span', { class: s < 0.5 ? 'bad' : '' }, repairing ? '搶修中' : fmtPct(s)),
-        btn,
-      );
-    });
-
-    const shelterState = v('shelter') >= 1 ? '已開設' : v('shelter') > 0 ? '籌備中' : '未開設';
-    byId('region').replaceChildren(
-      el('div', { class: 'region-head' }, el('h3', {}, r.name), el('button', { class: 'close', title: '關閉' }, '×')),
-      el('div', { class: 'quiet' }, `人口約 ${fmtInt(r.population)}・震度約 ${v('intensity').toFixed(1)} 級・對外通達 ${fmtPct(accessOf(sim.ctx, i))}`),
-      el(
-        'dl',
-        {},
-        el('dt', {}, '受困'),
-        el('dd', {}, fmtInt(v('trapped'))),
-        el('dt', {}, '待收治傷患'),
-        el('dd', {}, fmtInt(v('injured'))),
-        el('dt', {}, '空床'),
-        el('dd', {}, fmtInt(v('bedsFree'))),
-        el('dt', {}, '物資'),
-        el('dd', {}, fmtDays(v('supplies'))),
-        el('dt', {}, '秩序'),
-        el('dd', {}, fmtPct(v('order'))),
-        el('dt', {}, '謠言'),
-        el('dd', {}, fmtPct(v('rumor'))),
-        el('dt', {}, '搜救隊'),
-        el('dd', {}, `${v('teams')} 隊${v('teamsEnroute') ? `（${v('teamsEnroute')} 隊在途）` : ''}`),
-        el('dt', {}, '避難所'),
-        el('dd', {}, shelterState),
-      ),
-      el(
-        'div',
-        { class: 'actions' },
-        action('派遣搜救隊', costs.dispatchRescue, () => this.game.queue({ type: 'dispatchRescue', region: i }), sim.state.scalars.teamsFree < 1),
-        action('撤回搜救隊', costs.recallRescue, () => this.game.queue({ type: 'recallRescue', region: i }), v('teams') < 1),
-        action('開設避難所', costs.openShelter, () => this.game.queue({ type: 'openShelter', region: i }), v('shelter') > 0),
-        action('調撥物資', costs.sendSupplies, () => this.game.queue({ type: 'sendSupplies', region: i })),
-      ),
-      pendingHere ? el('div', { class: 'quiet' }, `已排入下一小時：${pendingHere} 項行動`) : '',
-      el('h4', {}, '對外道路'),
-      el('ul', { class: 'roads' }, ...roads),
-    );
-    byId('region').querySelector('.close')!.addEventListener('click', () => this.map.select(null));
-  }
-
-  private renderEnd() {
-    const box = byId('end');
-    const end = this.game.sim.state.ended;
-    if (!end) {
-      box.hidden = true;
-      return;
-    }
-    box.hidden = false;
-    const d = end.details;
-    const again = el('button', { class: 'wide' }, '再玩一局');
-    again.addEventListener('click', () => this.game.restart());
-    box.replaceChildren(
-      el(
-        'div',
-        { class: 'card' },
-        el('div', { class: `grade g-${end.grade}` }, end.grade),
-        el('h2', {}, end.reason),
-        el('p', {}, `分數 ${end.score.toFixed(1)}`),
-        el(
-          'dl',
-          {},
-          el('dt', {}, '受威脅人數'),
-          el('dd', {}, fmtInt(d.atRisk)),
-          el('dt', {}, '死亡'),
-          el('dd', {}, fmtInt(d.deaths)),
-          el('dt', {}, '仍受困'),
-          el('dd', {}, fmtInt(d.stillTrapped)),
-          el('dt', {}, '已收治'),
-          el('dd', {}, fmtInt(d.treated)),
-          el('dt', {}, '最終秩序'),
-          el('dd', {}, fmtPct(d.order)),
-        ),
-        el('p', { class: 'quiet' }, `種子 ${this.game.seedValue}（相同種子會重現同一場地震）`),
-        again,
-      ),
-    );
-  }
-}
-
-/** 台灣現在的時段（UTC+8，不受使用者電腦時區影響） */
-function timeNow(): TimeKey {
-  let hour = (new Date().getUTCHours() + 8) % 24;
-  if (hour < 5) hour += 24; // 夜晚跨午夜：19–29 點
-  const hit = (Object.keys(TIMES) as TimeKey[]).find((k) => hour >= TIMES[k].hours[0] && hour < TIMES[k].hours[1]);
-  return hit ?? 'day';
 }

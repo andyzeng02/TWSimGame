@@ -275,6 +275,20 @@ export const LANDMARKS: { name: string; center: [number, number]; zoom: number; 
   { name: '遠眺玉山', center: [120.8300, 23.2700], zoom: 10.6, pitch: 75, bearing: 35 },
 ];
 
+/** 震波動畫（ROADMAP 3.2）：從斷層中點往外擴散的圓環 */
+export const SHOCKWAVE = {
+  /** 最大半徑（公里），乘上強度（主震 1、餘震約 0.6） */
+  radiusKm: 70,
+  /** 一圈擴散所需時間（毫秒） */
+  durationMs: 3200,
+  /** 圈數與間隔 */
+  rings: 3,
+  gapMs: 450,
+  color: '#e0482f',
+  /** 主震時鏡頭輕微晃動（系統設定「減少動態效果」時不晃） */
+  shake: true,
+};
+
 /** 地標導覽的節奏（毫秒）：飛行時間、每站停留 */
 export const TOUR = { flyMs: 5000, holdMs: 3000 };
 

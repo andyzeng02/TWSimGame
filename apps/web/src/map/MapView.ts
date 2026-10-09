@@ -17,6 +17,7 @@ import {
   LANDMARKS,
   MAP_CONFIG,
   PALETTE,
+  SHOCKWAVE,
   TIMES,
   TOUR,
   type Palette,
@@ -281,6 +282,47 @@ export class MapView {
     this.map.flyTo({ ...start, duration: 1800 });
   }
 
+  /**
+   * 震波動畫（ROADMAP 3.2）：從 center 往外擴散幾圈圓環。strength 0–1 決定半徑與濃淡。
+   * 每一格動畫改 GeoJSON 資料（不改 paint），3D 地形上也會正確更新。
+   */
+  playShockwave(center: [number, number], strength: number) {
+    const map = this.map;
+    const src = map.getSource('shockwave') as GeoJSONSource | undefined;
+    if (!src) return;
+    const S = SHOCKWAVE;
+    const total = S.durationMs + S.gapMs * (S.rings - 1);
+    const start = performance.now();
+    const id = ++this.shockId;
+    const frame = (now: number) => {
+      if (id !== this.shockId) return;
+      const t = now - start;
+      const features = [];
+      for (let k = 0; k < S.rings; k++) {
+        const p = (t - k * S.gapMs) / S.durationMs;
+        if (p <= 0 || p >= 1) continue;
+        const eased = 1 - (1 - p) ** 2;
+        features.push({
+          type: 'Feature' as const,
+          properties: { alpha: (1 - p) * (0.35 + 0.55 * strength), width: 1.5 + 3 * strength * (1 - p) },
+          geometry: { type: 'LineString' as const, coordinates: circle(center, eased * S.radiusKm * (0.4 + 0.6 * strength)) },
+        });
+      }
+      src.setData({ type: 'FeatureCollection', features });
+      if (t < total) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+
+    if (S.shake && strength >= 0.9 && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const offsets: [number, number][] = [[14, -8], [-18, 10], [12, 6], [-8, -10], [5, 4], [0, 0]];
+      offsets.forEach(([x, y], k) =>
+        setTimeout(() => map.panBy([x, y], { duration: 70, animate: true }), k * 80),
+      );
+    }
+  }
+
+  private shockId = 0;
+
   /** 擷取目前畫面（在繪製當下複製，不需要 preserveDrawingBuffer，平常不影響效能） */
   capture(): Promise<HTMLCanvasElement> {
     return new Promise((resolve) => {
@@ -481,6 +523,7 @@ export class MapView {
     map.addSource('district-labels', { type: 'geojson', data: labels });
     map.addSource('faults', { type: 'geojson', data: faults });
     map.addSource('teams', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    map.addSource('shockwave', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
     const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id;
     const add = (layer: LayerSpecification, beforeId?: string) => map.addLayer(layer, beforeId);
@@ -555,6 +598,18 @@ export class MapView {
       paint: { 'text-color': PALETTE.district.label, 'text-halo-color': PALETTE.district.halo, 'text-halo-width': 1.8 },
     });
     this.setupFacilityLayers();
+    add({
+      id: 'shockwave',
+      type: 'line',
+      source: 'shockwave',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': SHOCKWAVE.color,
+        'line-opacity': ['get', 'alpha'],
+        'line-width': ['get', 'width'],
+        'line-blur': 1.5,
+      },
+    });
     add({
       id: 'teams',
       type: 'circle',
@@ -666,4 +721,14 @@ function detectLowPower(): boolean {
   if (q === 'low') return true;
   if (q === 'high') return false;
   return matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency ?? 8) <= 4;
+}
+
+/** 以公里為半徑的圓（64 個點），給震波動畫用 */
+function circle([lng, lat]: [number, number], km: number): [number, number][] {
+  const dLat = km / 110.574;
+  const dLng = km / (111.32 * Math.cos((lat * Math.PI) / 180));
+  return Array.from({ length: 65 }, (_, k) => {
+    const a = (k / 64) * Math.PI * 2;
+    return [lng + dLng * Math.cos(a), lat + dLat * Math.sin(a)];
+  });
 }

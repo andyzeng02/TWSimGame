@@ -30,6 +30,8 @@ export class Hud {
   private selected: number | null = null;
   /** 觀景模式：只看地景；指揮模式：顯示遊戲介面 */
   private scene = true;
+  /** 已經播過震波的事件數（重玩時歸零） */
+  private shocksSeen = 0;
 
   constructor(private game: Game, private map: MapView) {
     this.buildLayerButtons();
@@ -130,7 +132,24 @@ export class Hud {
     renderRegionPanel(this.game, this.map, this.selected, this.scene);
   }
 
+  /** 新出現的地震、餘震事件：在地圖上播震波（觀景模式不播，等切到指揮模式再播） */
+  private playNewShocks() {
+    const log = this.game.sim.state.log;
+    if (log.length < this.shocksSeen) this.shocksSeen = 0; // 再玩一局
+    if (this.scene) return;
+    const fresh = log.slice(this.shocksSeen);
+    this.shocksSeen = log.length;
+    const { world } = this.game.sim;
+    const fault = world.faults.find((f) => f.id === this.game.rules.config.faultId) ?? world.faults[0];
+    const center = fault ? fault.line[Math.floor(fault.line.length / 2)] : world.regions[0].centroid;
+    for (const l of fresh) {
+      if (l.kind === 'quake') this.map.playShockwave(center, 1);
+      else if (l.kind === 'aftershock') this.map.playShockwave(center, 0.6);
+    }
+  }
+
   private renderLog() {
+    this.playNewShocks();
     const log = this.game.sim.state.log.slice(-40).reverse();
     byId('log').replaceChildren(
       ...log.map((l) =>

@@ -89,12 +89,14 @@
 
 載入畫面：`ui/loading.ts` 用世界檔的行政區外框畫高雄剪影，依載入進度填色。
 
+震波：`MapView.playShockwave(中心, 強度)`，由 `Hud` 在事件紀錄出現新的 `quake`／`aftershock` 時呼叫（中心取震源斷層的中點）。動畫每一格改 GeoJSON 資料而不是 paint，3D 地形上才會正確更新；設定在 `config.ts` 的 `SHOCKWAVE`。
+
 地標導覽：`MapView.startTour()` 依 `config.ts` 的 `LANDMARKS` 依序 `flyTo`，節奏在 `TOUR`；使用者動地圖就自動停止。
 
 地形用 `setTerrain` 套在整張地圖上，所有圖層會自動貼在地表。高程圖磚含海底地形，透過自訂協定 `flatsea://` 在瀏覽器裡把負高程改成 0（`MAP_CONFIG.flattenSea`），海面才會是平的；等高線也只畫 0 公尺以上。天空與遠景霧氣用 `setSky`。
 
 `MapView` 對外只提供這些方法，不含任何遊戲規則：
-`select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`resetView`、`startTour`、`stopTour`、`onTourStop`、`setTimeOfDay`、`capture`。
+`select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`resetView`、`startTour`、`stopTour`、`onTourStop`、`setTimeOfDay`、`capture`、`setFacilities`、`playShockwave`。
 
 ## 模擬（sim-core + rules-game）
 

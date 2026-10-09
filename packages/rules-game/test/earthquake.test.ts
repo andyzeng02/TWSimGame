@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createSim, runHeadless, validateWorld, type World } from '@twsim/sim-core';
-import { createEarthquakeRules, greedyBot, idleBot, randomBot, intensityAt } from '../src/index';
+import { createEarthquakeRules, greedyBot, hospitalBedsByRegion, idleBot, randomBot, intensityAt } from '../src/index';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const loadWorld = (): World =>
@@ -78,5 +78,49 @@ describe('地震 72 小時', () => {
     const r = sim.step([{ type: 'dispatchRescue', region: 999 }]);
     assert.equal(r.actionResults[0].ok, false);
     assert.equal(sim.state.scalars.cp, Math.min(rules.config.cpMax, cp + rules.config.cpPerTick));
+  });
+});
+
+describe('醫院與避難所參與模擬（ROADMAP 3.3）', () => {
+  it('沒有設施資料時：病床依人口估算，結果與原本完全相同', () => {
+    const w = loadWorld();
+    assert.equal(hospitalBedsByRegion(w), null);
+    const a = runHeadless(w, createEarthquakeRules(), 11, greedyBot(createEarthquakeRules().config));
+    const b = runHeadless({ ...w, facilities: [] }, createEarthquakeRules(), 11, greedyBot(createEarthquakeRules().config));
+    assert.equal(a.finalHash, b.finalHash);
+  });
+
+  it('有醫院病床資料時：病床依醫院加總，沒有醫院的區為 0', () => {
+    const w = loadWorld();
+    w.facilities = [
+      { kind: 'hospital', name: '甲醫院', at: w.regions[2].centroid, region: 2, capacity: 1000 },
+      { kind: 'hospital', name: '乙醫院', at: w.regions[2].centroid, region: 2, capacity: 500 },
+      { kind: 'hospital', name: '無床數診所', at: w.regions[3].centroid, region: 3 },
+    ];
+    const beds = hospitalBedsByRegion(w)!;
+    assert.equal(beds[2], 1500);
+    assert.equal(beds[3], 0, '沒有標病床數的不算');
+    const rules = createEarthquakeRules();
+    const sim = createSim(w, rules, 1);
+    const free = sim.state.vars.bedsFree;
+    assert.ok(free[2] > 0 && free[2] <= 1500 * rules.config.bedsAvailableShare + 1e-9);
+    assert.equal(free[5], 0);
+  });
+
+  it('有登記避難收容處所的區，避難所開得比較快', () => {
+    const w = loadWorld();
+    w.facilities = [{ kind: 'shelter', name: '某國小', at: w.regions[4].centroid, region: 4, capacity: 300 }];
+    const rules = createEarthquakeRules();
+    const sim = createSim(w, rules, 1);
+    sim.step([
+      { type: 'openShelter', region: 4 },
+      { type: 'openShelter', region: 6 },
+    ]);
+    const shelter = () => [sim.state.vars.shelter[4], sim.state.vars.shelter[6]];
+    // 第 1 小時套用行動；登記區 1 小時後開設完成，未登記區要 2 小時
+    sim.step([]);
+    assert.deepEqual(shelter(), [1, 0.5]);
+    sim.step([]);
+    assert.deepEqual(shelter(), [1, 1]);
   });
 });

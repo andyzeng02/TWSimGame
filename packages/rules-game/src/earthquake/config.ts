@@ -39,6 +39,9 @@ export interface EarthquakeConfig {
   injuredDeathUntreated: number;
   shelterInjuredDeathFactor: number;
   transferPerEdgeShare: number;
+  /** 開設避難所所需小時；區內有登記的避難收容處所（世界檔 facilities）時較快 */
+  shelterOpenTicks: number;
+  shelterOpenTicksRegistered: number;
 
   // 物資（單位：天）
   suppliesStartDays: number;
@@ -103,6 +106,8 @@ export const DEFAULT_EARTHQUAKE: EarthquakeConfig = {
   injuredDeathUntreated: 0.008,
   shelterInjuredDeathFactor: 0.7,
   transferPerEdgeShare: 0.5,
+  shelterOpenTicks: 2,
+  shelterOpenTicksRegistered: 1,
 
   suppliesStartDays: 1,
   suppliesPerShipmentDays: 1.5,

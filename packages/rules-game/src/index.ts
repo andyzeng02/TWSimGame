@@ -2,6 +2,7 @@ export { DEFAULT_EARTHQUAKE, intensityAt, trappedRate, type EarthquakeConfig } f
 export {
   createEarthquakeRules,
   gradeOf,
+  hospitalBedsByRegion,
   EQ_VARS,
   EQ_CORE_METRICS,
   type EqAction,

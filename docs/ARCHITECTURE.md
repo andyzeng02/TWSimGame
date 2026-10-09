@@ -106,6 +106,7 @@
 - 狀態是「一個變數一個陣列」（`vars['trapped'][區索引]`），劇本可自由增加變數。
 - 只用 `ctx.rng`，同一個種子加上同一串行動，結果必定相同，可存檔、重播、批次測試。
 - 遊戲數值全部在 `rules-game/src/earthquake/config.ts`。
+- 世界檔的 `facilities` 會影響模擬：病床依序取區屬性 `hospitalBeds` → 醫院設施的病床加總（`hospitalBedsByRegion`）→ 依人口估算；區內有登記避難收容處所時，避難所開設時間用 `shelterOpenTicksRegistered`。
 
 ## 外部服務
 

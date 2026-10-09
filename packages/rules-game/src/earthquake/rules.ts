@@ -8,6 +8,7 @@ import {
   type Ctx,
   type EndResult,
   type Rules,
+  type World,
 } from '@twsim/sim-core';
 import { DEFAULT_EARTHQUAKE, intensityAt, trappedRate, type EarthquakeConfig } from './config';
 
@@ -104,13 +105,15 @@ export function createEarthquakeRules(overrides: Partial<EarthquakeConfig> = {})
       const order = ctx.v('order');
       const rumor = ctx.v('rumor');
 
+      const facilityBeds = hospitalBedsByRegion(world);
       world.regions.forEach((r, i) => {
         const d = fault ? distanceToLineKm(r.centroid, fault.line) : distanceKm(r.centroid, world.regions[0].centroid);
         I[i] = intensityAt(magnitude, d);
         trapped[i] = r.population * trappedRate(I[i]) * rng.range(0.8, 1.2);
         injured[i] = trapped[i] * cfg.injuredPerTrapped * rng.range(0.8, 1.2);
         const hospitalDamage = Math.max(0.2, 1 - Math.max(0, I[i] - 5) * 0.25);
-        const baseBeds = r.attrs.hospitalBeds ?? (r.population * cfg.bedsPer1000) / 1000;
+        // 病床：區屬性 > 世界檔的醫院設施 > 依人口估算
+        const baseBeds = r.attrs.hospitalBeds ?? facilityBeds?.[i] ?? (r.population * cfg.bedsPer1000) / 1000;
         beds[i] = baseBeds * cfg.bedsAvailableShare * hospitalDamage;
         supplies[i] = cfg.suppliesStartDays;
         order[i] = clamp01(1 - 0.08 * Math.max(0, I[i] - 4));
@@ -169,7 +172,8 @@ export function createEarthquakeRules(overrides: Partial<EarthquakeConfig> = {})
           if (ctx.v('shelter')[a.region] > 0) return fail('避難所已開設或籌備中');
           if (!pay(ctx, cfg.costs.openShelter)) return fail('指揮點數不足');
           ctx.v('shelter')[a.region] = 0.5;
-          ctx.schedule(2, 'shelterOpen', { region: a.region });
+          const registered = (ctx.world.facilities ?? []).some((f) => f.kind === 'shelter' && f.region === a.region);
+          ctx.schedule(registered ? cfg.shelterOpenTicksRegistered : cfg.shelterOpenTicks, 'shelterOpen', { region: a.region });
           return { ok: true };
         }
         case 'repairRoad': {
@@ -390,4 +394,16 @@ export function createEarthquakeRules(overrides: Partial<EarthquakeConfig> = {})
       };
     },
   };
+}
+
+/**
+ * 世界檔有醫院設施且標了病床數時，加總每區的病床；沒有這類資料時回傳 null（改用人口估算）。
+ * 有資料時，沒有醫院的區病床為 0，傷患要靠轉送。
+ */
+export function hospitalBedsByRegion(world: World): number[] | null {
+  const hospitals = (world.facilities ?? []).filter((f) => f.kind === 'hospital' && f.capacity !== undefined);
+  if (!hospitals.length) return null;
+  const beds = world.regions.map(() => 0);
+  for (const h of hospitals) beds[h.region] += h.capacity!;
+  return beds;
 }

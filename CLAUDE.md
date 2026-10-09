@@ -20,6 +20,8 @@ apps/web/src/
   map/style/         自有底圖樣式：base.json（圖層結構）＋ buildStyle()（套配色）
   ui/Hud.ts          介面（觀景模式工具列、指揮模式面板）
   ui/layers.ts       災情圖層：模擬狀態 → 每區 0–1 嚴重度
+  ui/loading.ts      載入畫面的高雄剪影
+  ui/screenshot.ts   一鍵截圖分享
 packages/sim-core    模擬核心（無依賴）
 packages/geo         地理工具：Shapefile、TWD97、多邊形、CSV（無依賴）
 packages/rules-game  地震 72 小時規則、數值、機器人、批次跑分

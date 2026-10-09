@@ -78,12 +78,20 @@
 8. 底圖的地名標籤（已改成中文）、等高線高度 `contour-labels`
 9. 區名 `district-labels`、斷層 `faults`、搜救隊 `teams`
 
+時段：`MapView.setTimeOfDay()` 依 `config.ts` 的 `TIMES` 換天空、光線（`setLight`）、山體陰影方向與配色（清晨、黃昏是白天配色混暖色；夜晚用 `NIGHT_PALETTE`）。只改 paint 屬性、不重建樣式；改完要清掉地形貼圖快取（`freeRtt`），樣式也關掉 paint 漸變，否則地表會殘留舊顏色。
+
+省電模式：觸控裝置或 CPU 核心數 ≤ 4 時降低繪圖解析度、縮小圖磚快取、等高線晚一點出現（`MAP_CONFIG.lowPower`）。
+
+截圖：`MapView.capture()` 在繪製當下複製畫面；`ui/screenshot.ts` 加上標題列與資料來源，手機開分享選單，電腦下載 PNG。
+
+載入畫面：`ui/loading.ts` 用世界檔的行政區外框畫高雄剪影，依載入進度填色。
+
 地標導覽：`MapView.startTour()` 依 `config.ts` 的 `LANDMARKS` 依序 `flyTo`，節奏在 `TOUR`；使用者動地圖就自動停止。
 
 地形用 `setTerrain` 套在整張地圖上，所有圖層會自動貼在地表。天空與遠景霧氣用 `setSky`。
 
 `MapView` 對外只提供這些方法，不含任何遊戲規則：
-`select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`resetView`、`startTour`、`stopTour`、`onTourStop`。
+`select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`resetView`、`startTour`、`stopTour`、`onTourStop`、`setTimeOfDay`、`capture`。
 
 ## 模擬（sim-core + rules-game）
 

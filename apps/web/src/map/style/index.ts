@@ -1,16 +1,15 @@
 import type { FilterSpecification, LayerSpecification, StyleSpecification } from 'maplibre-gl';
-import { LAKES, MAJOR_RIVERS, PALETTE } from '../config';
+import { LAKES, MAJOR_RIVERS, PALETTE, type Palette } from '../config';
 import base from './base.json';
 
 /**
  * 自有底圖樣式：以 base.json（OpenFreeMap liberty 樣式的副本，MIT 授權）為圖層結構，
- * 套上 config.ts 的 PALETTE，得到插畫風底圖。
+ * 套上 config.ts 的配色（白天 PALETTE、夜間 NIGHT_PALETTE），得到插畫風底圖。
  *
  * 只改顏色、字級與少數圖層的顯示；不新增遊戲圖層（那些在 MapView.setupGameLayers）。
  */
-export function buildStyle(): StyleSpecification {
+export function buildStyle(P: Palette = PALETTE): StyleSpecification {
   const style = structuredClone(base) as unknown as StyleSpecification;
-  const P = PALETTE;
   const layers: LayerSpecification[] = [];
 
   for (const layer of style.layers) {
@@ -86,7 +85,7 @@ export function buildStyle(): StyleSpecification {
     }
 
     if (layer.type === 'line' && 'source-layer' in layer && layer['source-layer'] === 'transportation') {
-      const color = roadColor(id);
+      const color = roadColor(id, P);
       if (color) paint['line-color'] = color;
     }
 
@@ -151,17 +150,18 @@ export function buildStyle(): StyleSpecification {
     },
   };
   const at = layers.findIndex((l) => l.id === 'label_other');
-  layers.splice(at < 0 ? layers.length : at, 0, ...nameLayers());
+  layers.splice(at < 0 ? layers.length : at, 0, ...nameLayers(P));
 
   style.layers = layers;
   delete style.sources.ne2_shaded;
+  // 顏色立即切換：有 3D 地形時，漸變過程中地表貼圖不會跟著重畫，會停在舊顏色
+  style.transition = { duration: 0, delay: 0 };
   return style;
 }
 
 const isMajorRiver = ['in', ['get', 'name'], ['literal', MAJOR_RIVERS]] as FilterSpecification;
 
-function nameLayers(): LayerSpecification[] {
-  const P = PALETTE;
+function nameLayers(P: Palette): LayerSpecification[] {
   const halo = { 'text-halo-color': P.labelHalo, 'text-halo-width': 1.6, 'text-halo-blur': 0.5 };
   const isPeak = ['in', ['get', 'class'], ['literal', ['peak', 'volcano']]] as FilterSpecification;
   return [
@@ -241,9 +241,9 @@ function nameLayers(): LayerSpecification[] {
 }
 
 /** 依圖層名稱判斷道路等級，回傳主色或外框色；不是道路回傳 undefined */
-function roadColor(id: string): string | undefined {
-  const R = PALETTE.road;
-  if (id.includes('rail')) return PALETTE.rail;
+function roadColor(id: string, P: Palette): string | undefined {
+  const R = P.road;
+  if (id.includes('rail')) return P.rail;
   const casing = id.endsWith('_casing') ? 1 : 0;
   if (id.includes('path_pedestrian')) return casing ? R.minor[1] : R.path;
   if (id.includes('motorway')) return R.motorway[casing];

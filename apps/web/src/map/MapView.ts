@@ -10,7 +10,18 @@ import type {
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { World } from '@twsim/sim-core';
-import { CONTOUR, DEM_ATTRIBUTION, DEM_TILES, LANDMARKS, MAP_CONFIG, PALETTE, SKY, TOUR } from './config';
+import {
+  CONTOUR,
+  DEM_ATTRIBUTION,
+  DEM_TILES,
+  LANDMARKS,
+  MAP_CONFIG,
+  PALETTE,
+  TIMES,
+  TOUR,
+  type Palette,
+  type TimeKey,
+} from './config';
 import { buildStyle } from './style';
 
 /**
@@ -50,11 +61,17 @@ export class MapView {
   private tourId = 0;
   private touring = false;
 
+  /** 省電模式：手機或低階裝置 */
+  readonly lowPower = detectLowPower();
+
   private constructor(container: HTMLElement, private world: World) {
-    const { start, bounds, localFont } = MAP_CONFIG;
+    const { start, bounds, localFont, lowPower } = MAP_CONFIG;
     contourSource();
     this.map = new MLMap({
       container,
+      ...(this.lowPower
+        ? { pixelRatio: Math.min(devicePixelRatio, lowPower.pixelRatio), maxTileCacheSize: lowPower.maxTileCacheSize }
+        : {}),
       style: buildStyle(),
       center: start.center,
       zoom: start.zoom,
@@ -79,6 +96,7 @@ export class MapView {
     onProgress('建立地形與圖層…', 0.5);
     view.setupScene();
     view.setupGameLayers();
+    view.setTimeOfDay('day');
     view.setupInteraction();
     onProgress('下載地形與地圖圖磚…', 0.7);
     // 等第一批圖磚畫完再收起載入畫面（最多等 10 秒）
@@ -149,11 +167,75 @@ export class MapView {
     for (const id of GAME_LAYERS) if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', scene ? 'none' : 'visible');
   }
 
+  /**
+   * 時段（ROADMAP 1.5）：換天空、光線、山體陰影方向與配色（清晨、黃昏偏暖，夜晚換夜間配色）。
+   * 只改圖層的 paint 屬性，不重建樣式，所以地形與遊戲圖層都保留。
+   */
+  setTimeOfDay(key: TimeKey) {
+    const t = TIMES[key];
+    const map = this.map;
+    this.applyPalette(t.palette);
+    map.setSky(t.sky as unknown as SkySpecification);
+    map.setLight({ anchor: 'map', position: [1.5, t.sun.azimuth, t.sun.polar], color: t.light.color, intensity: t.light.intensity });
+    if (map.getLayer('hillshade')) map.setPaintProperty('hillshade', 'hillshade-illumination-direction', t.hillshadeDirection);
+  }
+
+  private palette: Palette | null = null;
+
+  private applyPalette(p: Palette) {
+    if (this.palette === p) return;
+    const map = this.map;
+    // 底圖：用同一份樣式產生器算出新顏色，逐一套到現有圖層
+    if (this.palette) {
+      for (const layer of buildStyle(p).layers) {
+        if (!map.getLayer(layer.id)) continue;
+        for (const [prop, value] of Object.entries(layer.paint ?? {})) {
+          map.setPaintProperty(layer.id, prop, value);
+        }
+      }
+    }
+    this.palette = p;
+    const set = (id: string, prop: string, value: unknown) => {
+      if (map.getLayer(id)) map.setPaintProperty(id, prop, value);
+    };
+    set('hillshade', 'hillshade-shadow-color', p.hillshade.shadow);
+    set('hillshade', 'hillshade-highlight-color', p.hillshade.highlight);
+    set('hillshade', 'hillshade-accent-color', p.hillshade.accent);
+    set('hillshade', 'hillshade-exaggeration', p.hillshade.exaggeration);
+    const major = ['==', ['get', 'level'], 1];
+    set('contour-lines', 'line-color', ['case', major, p.contour.major, p.contour.minor]);
+    set('contour-labels', 'text-color', p.contour.label);
+    set('contour-labels', 'text-halo-color', p.labelHalo);
+    set('districts-casing', 'line-color', p.district.casing);
+    set('districts-line', 'line-color', ['case', SEL, '#1f5fe0', p.district.line]);
+    set('district-labels', 'text-color', p.district.label);
+    set('district-labels', 'text-halo-color', p.district.halo);
+    // 開了 3D 地形時，MapLibre 會把底圖先畫成貼圖再貼到地表；只改 paint 不會清掉舊貼圖，
+    // 不清的話會留下一塊塊舊顏色。這是內部 API，找不到就略過（最壞情況是等圖磚重載才更新）
+    (map as unknown as { terrain?: { tileManager?: { freeRtt?: () => void } } }).terrain?.tileManager?.freeRtt?.();
+    map.triggerRepaint();
+  }
+
   /** 回到開場鏡頭 */
   resetView() {
     this.stopTour();
     const { start } = MAP_CONFIG;
     this.map.flyTo({ ...start, duration: 1800 });
+  }
+
+  /** 擷取目前畫面（在繪製當下複製，不需要 preserveDrawingBuffer，平常不影響效能） */
+  capture(): Promise<HTMLCanvasElement> {
+    return new Promise((resolve) => {
+      this.map.once('render', () => {
+        const src = this.map.getCanvas();
+        const copy = document.createElement('canvas');
+        copy.width = src.width;
+        copy.height = src.height;
+        copy.getContext('2d')!.drawImage(src, 0, 0);
+        resolve(copy);
+      });
+      this.map.triggerRepaint();
+    });
   }
 
   get isTouring() {
@@ -259,7 +341,7 @@ export class MapView {
         type: 'line',
         source: 'contours',
         'source-layer': 'contours',
-        minzoom: CONTOUR.minzoom,
+        minzoom: this.lowPower ? MAP_CONFIG.lowPower.contourMinzoom : CONTOUR.minzoom,
         layout: { 'line-join': 'round' },
         paint: {
           'line-color': ['case', major, C.major, C.minor],
@@ -286,7 +368,6 @@ export class MapView {
       paint: { 'text-color': C.label, 'text-halo-color': PALETTE.labelHalo, 'text-halo-width': 1.2 },
     });
 
-    map.setSky(SKY as unknown as SkySpecification);
   }
 
   private setupGameLayers() {
@@ -369,7 +450,7 @@ export class MapView {
         source: 'districts',
         layout: { 'line-join': 'round' },
         paint: {
-          'line-color': '#ffffff',
+          'line-color': PALETTE.district.casing,
           'line-opacity': 0.55,
           'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2.2, 13, 5],
         },
@@ -383,7 +464,7 @@ export class MapView {
         source: 'districts',
         layout: { 'line-join': 'round' },
         paint: {
-          'line-color': ['case', SEL, '#1f5fe0', '#4a4136'],
+          'line-color': ['case', SEL, '#1f5fe0', PALETTE.district.line],
           'line-opacity': 0.85,
           'line-width': ['interpolate', ['linear'], ['zoom'], 8, ['case', SEL, 2.6, 0.9], 13, ['case', SEL, 4.5, 2]],
         },
@@ -411,7 +492,7 @@ export class MapView {
         'text-allow-overlap': false,
         'symbol-sort-key': ['-', ['get', 'area']],
       },
-      paint: { 'text-color': '#2b2620', 'text-halo-color': 'rgba(255,255,255,0.92)', 'text-halo-width': 1.8 },
+      paint: { 'text-color': PALETTE.district.label, 'text-halo-color': PALETTE.district.halo, 'text-halo-width': 1.8 },
     });
     add({
       id: 'teams',
@@ -445,4 +526,12 @@ export class MapView {
       map.getCanvas().style.cursor = hit.length ? 'pointer' : '';
     });
   }
+}
+
+/** 判斷是否用省電模式：網址 ?quality=low／high 優先，否則看是不是觸控裝置或 CPU 核心數少 */
+function detectLowPower(): boolean {
+  const q = new URLSearchParams(location.search).get('quality');
+  if (q === 'low') return true;
+  if (q === 'high') return false;
+  return matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency ?? 8) <= 4;
 }

@@ -15,8 +15,10 @@
       </div>
       <label class="toggle"><input type="checkbox" id="hillshade" checked /> 山體陰影</label>
       <label class="toggle"><input type="checkbox" id="buildings" checked /> 3D 建築</label>
+      <label class="toggle">時段 <select id="time"></select></label>
       <button id="tour">地標導覽 ▶</button>
       <button id="reset-view">重設視角</button>
+      <button id="screenshot" title="把目前畫面存成圖片（手機可直接分享）">截圖</button>
       <button id="to-command" class="primary">地震 72 小時 ▸</button>
     </header>
 
@@ -64,6 +66,7 @@
 
     <div id="loading">
       <div class="card">
+        <svg id="loading-shape" aria-hidden="true"></svg>
         <strong>正在載入高雄 3D 地景…</strong>
         <div class="bar"><div id="loading-bar"></div></div>
         <div id="loading-text" class="quiet">準備中</div>

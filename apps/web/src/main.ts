@@ -3,6 +3,7 @@ import { Game } from './game';
 import { MapView } from './map/MapView';
 import { Hud } from './ui/Hud';
 import { byId } from './ui/format';
+import { drawSilhouette } from './ui/loading';
 import './style.css';
 
 // 有正式世界檔（npm run build-world 產出的 kaohsiung.json）就用它，否則用草稿世界
@@ -19,9 +20,12 @@ async function main() {
   const loading = byId('loading');
   const loadingText = byId('loading-text');
   const loadingBar = byId('loading-bar');
+  const fillShape = drawSilhouette(document.getElementById('loading-shape') as unknown as SVGSVGElement, world);
+  fillShape?.(0.05);
   const map = await MapView.create(byId('map'), world, (msg, f) => {
     loadingText.textContent = msg;
     loadingBar.style.width = `${Math.round(f * 100)}%`;
+    fillShape?.(f);
   });
   loading.hidden = true;
   byId('attribution').textContent = map.attribution;

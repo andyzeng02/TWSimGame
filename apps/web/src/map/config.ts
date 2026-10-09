@@ -59,6 +59,8 @@ export const PALETTE = {
   contour: { minor: '#9c8f72', major: '#7d6f52', label: '#6b5d42' },
   /** 山峰點與名稱 */
   peak: { dot: '#5b6b46', label: '#3f4a30' },
+  /** 行政區界線與區名（遊戲圖層） */
+  district: { line: '#4a4136', casing: '#ffffff', label: '#2b2620', halo: 'rgba(255,255,255,0.92)' },
   /** 山體陰影 */
   hillshade: {
     shadow: '#5d6b58',
@@ -88,20 +90,148 @@ export const MAP_CONFIG = {
     [119.8, 22.1],
     [121.4, 23.8],
   ] as [[number, number], [number, number]],
+  /**
+   * 省電模式（ROADMAP 1.6）：手機、核心數少的筆電自動開啟；網址加 ?quality=low／high 可強制切換。
+   * 降低繪圖解析度、等高線晚一點出現、圖磚快取小一點。
+   */
+  lowPower: { pixelRatio: 1.25, contourMinzoom: 12, maxTileCacheSize: 120 },
   /** 中文字型交給瀏覽器本機字型繪製（不用下載 CJK 字型檔） */
   localFont: "'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', sans-serif",
 };
 
-/** 天空與遠景霧氣（MapLibre v5 sky 規格） */
-export const SKY = {
-  'sky-color': '#8ec5ef',
-  'horizon-color': '#e6eef4',
-  'fog-color': '#e3eaee',
+export type Palette = typeof PALETTE;
+
+/** 夜間配色：深藍底、道路與 3D 建築偏暖色，像城市燈光 */
+export const NIGHT_PALETTE: Palette = {
+  land: '#1e2938',
+  water: '#0e1b2d',
+  waterLabel: '#9fbada',
+  river: '#18324f',
+  wood: '#203330',
+  grass: '#253833',
+  park: '#233830',
+  farmland: '#29333d',
+  sand: '#36362f',
+  wetland: '#203439',
+  residential: '#283142',
+  school: '#2a3343',
+  hospital: '#33303f',
+  cemetery: '#253232',
+  airport: '#2a3140',
+  road: {
+    motorway: ['#e8b25c', '#6f5428'],
+    trunk: ['#d6a862', '#5f4c2e'],
+    secondary: ['#a99070', '#463f33'],
+    minor: ['#566070', '#262d3a'],
+    path: '#464e5d',
+  },
+  rail: '#69707f',
+  building: '#2d3545',
+  buildingOutline: '#394253',
+  building3d: '#f0c27a',
+  label: '#ebe5d8',
+  labelMinor: '#b7b1a5',
+  labelHalo: '#131b27',
+  labelSize: PALETTE.labelSize,
+  contour: { minor: '#46566b', major: '#6a7b91', label: '#a8b6c8' },
+  peak: { dot: '#c8d2de', label: '#dfe6ee' },
+  district: { line: '#c9d3df', casing: '#0b1220', label: '#f2ede3', halo: 'rgba(10,16,26,0.9)' },
+  hillshade: {
+    shadow: '#04070c',
+    highlight: '#3a4a60',
+    accent: '#0a111d',
+    exaggeration: 0.5,
+  },
+};
+
+/** 把配色裡每個 #rrggbb 往 color 混合 amount（0–1），做出清晨、黃昏的暖色調 */
+function tinted(p: Palette, color: string, amount: number): Palette {
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const [tr, tg, tb] = rgb(color);
+  const mix = (v: unknown): unknown => {
+    if (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)) {
+      const [r, g, b] = rgb(v);
+      const m = (a: number, t: number) => Math.round(a + (t - a) * amount).toString(16).padStart(2, '0');
+      return `#${m(r, tr)}${m(g, tg)}${m(b, tb)}`;
+    }
+    if (Array.isArray(v)) return v.map(mix);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, mix(x)]));
+    return v;
+  };
+  return mix(p) as Palette;
+}
+
+type SkySpec = Record<string, unknown>;
+
+/** 天空與遠景霧氣（MapLibre v5 sky 規格）；離地拉高後才看得到大氣層 */
+const sky = (skyColor: string, horizon: string, fog: string): SkySpec => ({
+  'sky-color': skyColor,
+  'horizon-color': horizon,
+  'fog-color': fog,
   'sky-horizon-blend': 0.6,
   'horizon-fog-blend': 0.7,
   'fog-ground-blend': 0.45,
   'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0],
+});
+
+export type TimeKey = 'dawn' | 'day' | 'dusk' | 'night';
+
+/**
+ * 時段（ROADMAP 1.5）：天空、霧、太陽方向、光線、配色。
+ * sun.azimuth：太陽方位（度，0 = 北、90 = 東）；sun.polar：離天頂的角度（越大太陽越低）。
+ * hours：「自動」模式下對應的台灣時間 [起, 迄)。
+ */
+export const TIMES: Record<TimeKey, {
+  label: string;
+  hours: [number, number];
+  /** 這個時段用的配色 */
+  palette: Palette;
+  sky: SkySpec;
+  sun: { azimuth: number; polar: number };
+  light: { color: string; intensity: number };
+  /** 山體陰影的光源方向；白天用製圖慣例的西北光，地形最好讀 */
+  hillshadeDirection: number;
+}> = {
+  dawn: {
+    label: '清晨',
+    hours: [5, 7],
+    palette: tinted(PALETTE, '#f2b9a0', 0.16),
+    sky: sky('#9fb8de', '#f6d6c4', '#ecdcd2'),
+    sun: { azimuth: 80, polar: 78 },
+    light: { color: '#ffd9b8', intensity: 0.45 },
+    hillshadeDirection: 80,
+  },
+  day: {
+    label: '白天',
+    hours: [7, 17],
+    palette: PALETTE,
+    sky: sky('#8ec5ef', '#e6eef4', '#e3eaee'),
+    sun: { azimuth: 210, polar: 40 },
+    light: { color: '#ffffff', intensity: 0.5 },
+    hillshadeDirection: 315,
+  },
+  dusk: {
+    label: '黃昏',
+    hours: [17, 19],
+    palette: tinted(PALETTE, '#e8925a', 0.24),
+    sky: sky('#6f86b8', '#f3b98a', '#e9cdb6'),
+    sun: { azimuth: 285, polar: 80 },
+    light: { color: '#ffc58f', intensity: 0.45 },
+    hillshadeDirection: 285,
+  },
+  night: {
+    label: '夜晚',
+    hours: [19, 29],
+    palette: NIGHT_PALETTE,
+    sky: sky('#0b1424', '#22314a', '#1b2638'),
+    sun: { azimuth: 200, polar: 30 },
+    light: { color: '#9fb4d8', intensity: 0.25 },
+    hillshadeDirection: 315,
+  },
 };
+
+/** 開場時段：'auto' 依台灣現在時間，或指定 TimeKey */
+export const DEFAULT_TIME: TimeKey | 'auto' = 'day';
 
 /**
  * 等高線（ROADMAP 1.2）：縮放 → [細線間距, 粗線間距]（公尺）。

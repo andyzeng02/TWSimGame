@@ -108,6 +108,7 @@ dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
   border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 24px rgba(60, 50, 30, 0.1);
 }
 #scenebar .toggle { margin: 0; }
+#scenebar select { border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 5px 8px; font: inherit; }
 #scenebar button { border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 6px 12px; }
 #scenebar button.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 body:not(.scene) #scenebar { display: none; }
@@ -133,6 +134,10 @@ body.scene #right { top: 84px; width: 260px; }
 #loading[hidden] { display: none; }
 #loading .card { text-align: left; }
 #loading .bar { margin: 12px 0 6px; height: 8px; }
+#loading-shape { display: block; width: 240px; height: 240px; margin: 0 auto 14px; }
+#loading-shape .shape-empty { fill: #d9d1c2; stroke: #f6f2ea; stroke-width: 2; }
+#loading-shape .shape-fill { fill: #8fb07a; stroke: #f6f2ea; stroke-width: 2; }
+#loading-shape rect { transition: width 0.3s; }
 #loading-bar { height: 100%; width: 0; background: var(--accent); transition: width 0.2s; }
 #warnings { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); max-width: min(560px, calc(100% - 600px)); background: #fff4dc; border: 1px solid #ecd49a; color: #7a5a12; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; }
 #warnings[hidden] { display: none; }

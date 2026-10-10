@@ -113,7 +113,9 @@
 
 地形用 `setTerrain` 套在整張地圖上，所有圖層會自動貼在地表。高程圖磚含海底地形，透過自訂協定 `flatsea://` 在瀏覽器裡把負高程改成 0（`MAP_CONFIG.flattenSea`），海面才會是平的；等高線也只畫 0 公尺以上。天空與遠景霧氣用 `setSky`。
 
-交通模式：`traffic-roads`（路況著色）、`traffic-lines`（軌道路線）、`traffic-stations`／`traffic-bikes`（車站、公共自行車站）、`traffic-vehicles`（車輛）。壅塞程度在 `packages/traffic` 算好，地圖只依 `level` 上色；車輛在兩次更新之間從舊位置滑到新位置（`TRAFFIC.animateMaxMs`），距離超過 `TRAFFIC.snapKm` 直接跳過去。顏色與更新頻率在 `config.ts` 的 `TRAFFIC`。
+交通模式：`traffic-roads`（路況著色）、`traffic-lines`（軌道路線）、`traffic-stations`／`traffic-bikes`（車站、公共自行車站）、`traffic-cars`（3D 車廂，zoom 11 以上）與 `traffic-vehicles`（圓點，zoom 11 以下）。
+
+3D 車輛：`packages/traffic` 的 `carFootprints()` 把車頭位置展開成一節節車廂的地面矩形（有軌道線形就吸附上去、沿彎道往後排），`MapView` 再用 fill-extrusion 往上擠出三段（車身、窗帶、車頂；車頭窗帶較亮，看得出方向）。拉遠時依 `2^(refZoom − zoom)` 放大，車寬、車高另外加粗（`TRAFFIC.model`），縮放時重畫。壅塞程度在 `packages/traffic` 算好，地圖只依 `level` 上色；車輛在兩次更新之間從舊位置滑到新位置（`TRAFFIC.animateMaxMs`），距離超過 `TRAFFIC.snapKm` 直接跳過去。顏色與更新頻率在 `config.ts` 的 `TRAFFIC`。
 
 `MapView` 對外只提供這些方法，不含任何遊戲規則：
 `select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`setRoads`、`resetView`、`startTour`、`stopTour`、`onTourStop`、`setTimeOfDay`、`capture`、`setFacilities`、`playShockwave`、`setTrafficMode`、`setTrafficHidden`、`setTraffic`、`onTrafficPick`、`showPopup`、`closePopup`。

@@ -10,7 +10,7 @@ import type {
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { World } from '@twsim/sim-core';
-import type { LngLat, TrafficMode, TrafficSnapshot, Vehicle } from '@twsim/traffic';
+import { carFootprints, type LngLat, type TrafficMode, type TrafficSnapshot, type Vehicle } from '@twsim/traffic';
 import {
   CONTOUR,
   DEM_ATTRIBUTION,
@@ -61,10 +61,12 @@ const TRAFFIC_LAYERS = [
   'traffic-stations',
   'traffic-station-labels',
   'traffic-vehicles',
+  'traffic-cars',
   'traffic-vehicle-labels',
 ];
 const TRAFFIC_PICK: Record<string, TrafficPick['kind']> = {
   'traffic-vehicles': 'vehicle',
+  'traffic-cars': 'vehicle',
   'traffic-stations': 'station',
   'traffic-bikes': 'station',
   'traffic-roads': 'road',
@@ -487,6 +489,10 @@ export class MapView {
       ),
     );
 
+    // 3D 車廂沿軌道排列用的線形（依運具分）
+    this.trackPaths.clear();
+    for (const l of snap.lines) this.trackPaths.set(l.mode, [...(this.trackPaths.get(l.mode) ?? []), ...l.path]);
+
     // 車輛：記下起點（目前畫面上的位置）與終點，交給動畫
     const from = new Map<string, LngLat>();
     for (const v of snap.vehicles) {
@@ -501,19 +507,47 @@ export class MapView {
       if (id !== this.trafficAnim) return;
       const f = Math.min(1, (now - start) / ms);
       this.vehicleAt.clear();
-      const features = this.vehicles.map((v) => {
+      for (const v of this.vehicles) {
         const a = from.get(v.id) ?? v.at;
-        const at: LngLat = [a[0] + (v.at[0] - a[0]) * f, a[1] + (v.at[1] - a[1]) * f];
-        this.vehicleAt.set(v.id, at);
-        return {
-          properties: { id: v.id, mode: v.mode, line: v.line, color: v.color ?? TRAFFIC.modeColor[v.mode] },
-          geometry: { type: 'Point', coordinates: at },
-        };
-      });
-      set('traffic-vehicles', fc(features));
+        this.vehicleAt.set(v.id, [a[0] + (v.at[0] - a[0]) * f, a[1] + (v.at[1] - a[1]) * f]);
+      }
+      this.drawVehicles();
       if (f < 1 && this.trafficOn) requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
+  }
+
+  /** 依目前位置畫車輛：拉遠是圓點，拉近是 3D 車廂 */
+  private drawVehicles() {
+    const M = TRAFFIC.model;
+    const zoom = this.map.getZoom();
+    const points: unknown[] = [];
+    const cars: unknown[] = [];
+    for (const v of this.vehicles) {
+      const at = this.vehicleAt.get(v.id) ?? v.at;
+      const color = v.color ?? TRAFFIC.modeColor[v.mode];
+      const props = { id: v.id, mode: v.mode, line: v.line, color };
+      points.push({ type: 'Feature' as const, properties: props, geometry: { type: 'Point' as const, coordinates: at } });
+      const spec = v.mode === 'bike' ? undefined : M.cars[v.mode];
+      if (!spec || zoom < M.minZoom) continue;
+      const scale = Math.min(spec.maxScale, Math.max(1, 2 ** (M.refZoom - zoom)));
+      const h = spec.heightM * scale * M.boost.height;
+      const [w0, w1] = M.windowBand;
+      const track = v.mode === 'bus' ? [] : (this.trackPaths.get(v.mode) ?? []);
+      const shape = { ...spec, widthM: spec.widthM * M.boost.width };
+      for (const car of carFootprints(at, v.bearing, shape, scale, track, M.snapM)) {
+        const geometry = { type: 'Polygon' as const, coordinates: [car.ring] };
+        const part = (base: number, top: number, c: string) =>
+          cars.push({ type: 'Feature' as const, properties: { ...props, base, top, color: c }, geometry });
+        part(0, h * w0, color);
+        part(h * w0, h * w1, car.index === 0 ? M.leadWindow : M.window);
+        part(h * w1, h, color);
+      }
+    }
+    const set = (id: string, features: unknown[]) =>
+      (this.map.getSource(id) as GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features } as never);
+    set('traffic-vehicles', points);
+    set('traffic-cars', cars);
   }
 
   onTrafficPick(handler: (pick: TrafficPick | null) => void) {
@@ -535,6 +569,10 @@ export class MapView {
   private vehicles: Vehicle[] = [];
   /** 每台車目前畫在哪裡（動畫進行中的位置） */
   private vehicleAt = new Map<string, LngLat>();
+  /** 各運具的軌道線形（3D 車廂沿著排） */
+  private trackPaths = new Map<TrafficMode, LngLat[][]>();
+  /** 縮放時重畫 3D 車廂（放大倍數跟著變），一個畫格最多一次 */
+  private zoomRedraw = false;
   private trafficPickHandlers: ((pick: TrafficPick | null) => void)[] = [];
   private popup: Popup | null = null;
 
@@ -861,7 +899,7 @@ export class MapView {
     const map = this.map;
     const T = TRAFFIC;
     const empty = { type: 'FeatureCollection' as const, features: [] };
-    for (const id of ['traffic-roads', 'traffic-lines', 'traffic-stations', 'traffic-vehicles']) map.addSource(id, { type: 'geojson', data: empty });
+    for (const id of ['traffic-roads', 'traffic-lines', 'traffic-stations', 'traffic-vehicles', 'traffic-cars']) map.addSource(id, { type: 'geojson', data: empty });
     const hidden = { visibility: 'none' as const };
     const modeColor = ['match', ['get', 'mode'], 'metro', T.modeColor.metro, 'lightrail', T.modeColor.lightrail, 'rail', T.modeColor.rail, 'bus', T.modeColor.bus, T.modeColor.bike] as ExpressionSpecification;
 
@@ -947,10 +985,26 @@ export class MapView {
       },
       paint: { 'text-color': '#2a2723', 'text-halo-color': 'rgba(255,255,255,0.92)', 'text-halo-width': 1.5 },
     });
+    // 3D 車廂（拉近才出現）；同一節車廂分成車身、窗帶、車頂三段往上疊
+    map.addLayer({
+      id: 'traffic-cars',
+      type: 'fill-extrusion',
+      source: 'traffic-cars',
+      minzoom: T.model.minZoom,
+      layout: hidden,
+      paint: {
+        'fill-extrusion-color': ['get', 'color'],
+        'fill-extrusion-base': ['get', 'base'],
+        'fill-extrusion-height': ['get', 'top'],
+        'fill-extrusion-vertical-gradient': true,
+      },
+    });
+    // 圓點：拉遠時代替 3D 車廂
     map.addLayer({
       id: 'traffic-vehicles',
       type: 'circle',
       source: 'traffic-vehicles',
+      maxzoom: T.model.minZoom,
       layout: hidden,
       paint: {
         'circle-radius': [
@@ -993,6 +1047,15 @@ export class MapView {
       if (e.originalEvent) this.stopTour();
     });
     const pick = (features: MapGeoJSONFeature[]) => (features.length ? Number(features[0].id) : null);
+    // 縮放時 3D 車廂的放大倍數會變，要重畫
+    map.on('zoom', () => {
+      if (!this.trafficOn || this.zoomRedraw) return;
+      this.zoomRedraw = true;
+      requestAnimationFrame(() => {
+        this.zoomRedraw = false;
+        this.drawVehicles();
+      });
+    });
     map.on('click', (e) => {
       // 交通模式：先看有沒有點到車輛、車站或路段
       if (this.trafficOn) {

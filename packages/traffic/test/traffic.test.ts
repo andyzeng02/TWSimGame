@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   bikeStations,
+  carFootprints,
   busVehicles,
   congestion,
   demoSnapshot,
@@ -9,10 +10,12 @@ import {
   metroLines,
   metroStations,
   parseWktLines,
+  railLines,
   railStations,
   railTrains,
   roadSegments,
   trainsNearStations,
+  type LngLat,
 } from '../src/index';
 
 // 以下樣本依 TDX 文件的欄位格式縮減而成
@@ -211,5 +214,86 @@ describe('示範資料', () => {
     // 美麗島是轉乘站：紅線兩個方向＋橘線兩個方向
     assert.equal(mlld.arrivals!.length, 4);
     for (const a of mlld.arrivals!) assert.ok(a.minutes >= 0 && a.minutes < 9);
+  });
+});
+
+describe('臺鐵路線', () => {
+  it('只保留高雄範圍內的線段，出界就切斷', () => {
+    const lines = railLines({
+      Shapes: [
+        { LineID: 'WL', LineName: { Zh_tw: '縱貫線' }, Geometry: 'LINESTRING(120.30 22.62, 120.31 22.70, 121.5 25.0)' },
+        { LineID: 'X', Geometry: 'LINESTRING(121.5 25.0, 121.6 25.1)' },
+      ],
+    });
+    assert.equal(lines.length, 1);
+    assert.equal(lines[0].name, '縱貫線');
+    assert.deepEqual(lines[0].path, [
+      [
+        [120.3, 22.62],
+        [120.31, 22.7],
+      ],
+    ]);
+  });
+});
+
+describe('3D 車廂外框', () => {
+  const spec = { cars: 3, lengthM: 20, widthM: 3, gapM: 1 };
+  const m = (a: LngLat, b: LngLat) => Math.hypot((b[0] - a[0]) * 111_320 * Math.cos((a[1] * Math.PI) / 180), (b[1] - a[1]) * 110_574);
+
+  it('沒有軌道：沿行進方向往後排成直線，大小正確', () => {
+    const cars = carFootprints([120.3, 22.6], 0, spec);
+    assert.equal(cars.length, 3);
+    for (const c of cars) {
+      assert.equal(c.ring.length, 5);
+      assert.deepEqual(c.ring[0], c.ring[4]);
+      assert.ok(Math.abs(m(c.ring[0], c.ring[1]) - 3) < 0.01, '寬 3 公尺');
+      assert.ok(Math.abs(m(c.ring[1], c.ring[2]) - 20) < 0.01, '長 20 公尺');
+    }
+    // 往北行駛，車廂往南排：第 3 節最南
+    assert.ok(cars[2].ring[2][1] < cars[0].ring[2][1]);
+    assert.ok(Math.abs(cars[2].ring[2][1] - (22.6 - 62 / 110_574)) < 1e-7, '總長 3×20＋2×1');
+  });
+
+  it('放大倍數讓車廂等比例變大', () => {
+    const big = carFootprints([120.3, 22.6], 90, spec, 4);
+    assert.ok(Math.abs(m(big[0].ring[1], big[0].ring[2]) - 80) < 0.05);
+  });
+
+  it('有軌道：車頭吸附到軌道，車廂沿彎道往後排', () => {
+    // 軌道從南往北再轉東；車頭在東段上、往東開
+    const track: LngLat[] = [
+      [120.3, 22.598],
+      [120.3, 22.6],
+      [120.302, 22.6],
+    ];
+    const cars = carFootprints([120.3008, 22.60005], 90, { cars: 3, lengthM: 40, widthM: 3, gapM: 0 }, 1, [track]);
+    // 車頭吸附到 y = 22.6 的線上（中心點）
+    const center = (r: LngLat[]) => [(r[0][0] + r[1][0]) / 2, (r[0][1] + r[1][1]) / 2] as LngLat;
+    assert.ok(Math.abs(center(cars[0].ring)[1] - 22.6) < 1e-7);
+    // 第 3 節已經轉到南北向那段：在轉角（120.3）的西邊不會超過、而且比轉角更南
+    const rear = cars[2].ring;
+    const rearCenter: LngLat = [(rear[2][0] + rear[3][0]) / 2, (rear[2][1] + rear[3][1]) / 2];
+    assert.ok(Math.abs(rearCenter[0] - 120.3) < 1e-6, `${rearCenter}`);
+    assert.ok(rearCenter[1] < 22.6);
+  });
+
+  it('離軌道太遠就不吸附', () => {
+    const track: LngLat[] = [
+      [120.3, 22.6],
+      [120.31, 22.6],
+    ];
+    const cars = carFootprints([120.305, 22.61], 0, spec, 1, [track], 150);
+    const c = cars[0].ring;
+    assert.ok(Math.abs((c[0][1] + c[1][1]) / 2 - 22.61) < 1e-7);
+  });
+
+  it('車頭在軌道終點、方向朝外也能排滿', () => {
+    const track: LngLat[] = [
+      [120.3, 22.6],
+      [120.301, 22.6],
+    ];
+    const cars = carFootprints([120.3, 22.6], 270, spec, 1, [track]);
+    assert.equal(cars.length, 3);
+    for (const c of cars) for (const p of c.ring) assert.ok(Number.isFinite(p[0]) && Number.isFinite(p[1]));
   });
 });

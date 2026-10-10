@@ -318,6 +318,31 @@ export const TRAFFIC = {
     bus: '#1d8a8a',
     bike: '#e8a317',
   },
+  /**
+   * 3D 車輛：拉近到 minZoom 以上，車輛畫成立體車廂（車身與車頂是路線顏色、中間一圈窗帶）；
+   * 更遠就畫圓點。真實大小在城市尺度幾乎看不到，所以拉遠時放大：
+   * 放大倍數 = 2^(refZoom − 目前縮放)，介於 1 到各車種的 maxScale 之間。
+   * 另外車寬、車高再乘上 boost，做成比例較胖的「微縮模型」樣子，斜看時才看得出立體。
+   * 車廂規格（公尺）是約略值：捷運 3 節、輕軌 5 節模組、臺鐵 8 節、公車 1 節。
+   */
+  model: {
+    minZoom: 11,
+    refZoom: 16.6,
+    boost: { width: 2.8, height: 2.6 },
+    cars: {
+      metro: { cars: 3, lengthM: 23, widthM: 3.2, gapM: 1.5, heightM: 3.8, maxScale: 12 },
+      lightrail: { cars: 5, lengthM: 6.8, widthM: 2.65, gapM: 0.5, heightM: 3.5, maxScale: 12 },
+      rail: { cars: 8, lengthM: 20, widthM: 3.2, gapM: 1.5, heightM: 4.1, maxScale: 10 },
+      bus: { cars: 1, lengthM: 12, widthM: 2.5, gapM: 0, heightM: 3.2, maxScale: 6 },
+    },
+    /** 窗帶在整體高度中的位置（下緣、上緣比例） */
+    windowBand: [0.5, 0.82] as [number, number],
+    window: '#e4edf2',
+    /** 車頭窗帶顏色（看得出行進方向） */
+    leadWindow: '#ffffff',
+    /** 吸附軌道的最大距離（公尺，會乘上放大倍數） */
+    snapM: 150,
+  },
   /** 路段壅塞程度顏色：0 不明、1 順暢、2 車多、3 壅塞 */
   congestion: ['#9aa3ad', '#3fae5a', '#f0a830', '#d63d2e'] as [string, string, string, string],
   /** 公共自行車：可借數量 ≤ 這個值顯示「快沒車」顏色 */

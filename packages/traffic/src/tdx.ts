@@ -207,6 +207,32 @@ export function railStations(json: unknown, bbox = KAOHSIUNG_BBOX): Station[] {
   return out;
 }
 
+/** 臺鐵路線線形（全臺）：只保留高雄附近的部分，線在範圍外的地方切斷 */
+export function railLines(json: unknown, bbox = KAOHSIUNG_BBOX): TransitLine[] {
+  const out: TransitLine[] = [];
+  for (const r of rows(json, 'Shapes')) {
+    const id = str(r.LineID) || str(r.LineNo);
+    const path: LngLat[][] = [];
+    for (const part of parseWktLines(str(r.Geometry))) {
+      let cur: LngLat[] = [];
+      for (const p of part) {
+        if (inBbox(p, bbox)) cur.push(p);
+        else if (cur.length) {
+          if (cur.length >= 2) path.push(cur);
+          cur = [];
+        }
+      }
+      if (cur.length >= 2) path.push(cur);
+    }
+    if (!id || !path.length) continue;
+    out.push({ id: `rail:${id}`, mode: 'rail', name: zh(r.LineName) || id, color: RAIL_COLOR, path });
+  }
+  return out;
+}
+
+/** 臺鐵路線顏色（TDX 沒有提供） */
+export const RAIL_COLOR = '#3a5fa8';
+
 const TRA_STATUS = ['進站中', '在站上', '已離站'];
 
 /** 臺鐵列車即時位置（TrainLiveBoard）：列車畫在目前所在或剛離開的車站；不在高雄附近的略過 */

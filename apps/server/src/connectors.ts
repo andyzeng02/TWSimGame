@@ -66,10 +66,10 @@ export const CONNECTORS: ConnectorDef[] = [
   },
   {
     id: 'rail-static',
-    name: '臺鐵：車站',
+    name: '臺鐵：車站與路線',
     group: '臺鐵',
-    description: '全臺車站位置（只保留高雄附近）',
-    paths: ['/v3/Rail/TRA/Station'],
+    description: '車站位置與路線線形（全臺資料，只保留高雄附近）',
+    paths: ['/v3/Rail/TRA/Station', '/v3/Rail/TRA/Shape'],
     defaultIntervalSec: DAY,
     minIntervalSec: 3600,
     defaultEnabled: true,

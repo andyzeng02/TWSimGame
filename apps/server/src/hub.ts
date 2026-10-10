@@ -11,6 +11,7 @@ import {
   metroArrivals,
   metroLines,
   metroStations,
+  railLines,
   railStations,
   railTrains,
   roadSegments,
@@ -19,6 +20,7 @@ import {
   type FeedStatus,
   type Station,
   type TrafficSnapshot,
+  type TransitLine,
   type Vehicle,
 } from '@twsim/traffic';
 import type { ConfigStore, ConnectorSetting } from './config';
@@ -189,7 +191,7 @@ export class Hub {
   private build(): TrafficSnapshot {
     const vehicles: Vehicle[] = [];
     const stations: Station[] = [];
-    const lines = [];
+    const lines: TransitLine[] = [];
 
     for (const mode of ['metro', 'lightrail'] as const) {
       const base = this.data(`${mode}-static`);
@@ -210,6 +212,7 @@ export class Hub {
     if (railBase) {
       const st = railStations(railBase[0]);
       stations.push(...st);
+      lines.push(...railLines(railBase[1]));
       const live = this.data('rail-live');
       if (live) vehicles.push(...railTrains(live[0], st));
     }

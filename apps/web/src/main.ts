@@ -1,4 +1,5 @@
 import { validateWorld, type World } from '@twsim/sim-core';
+import { DIFFICULTIES, type DifficultyKey } from '@twsim/rules-game';
 import { Game } from './game';
 import { MapView } from './map/MapView';
 import { Hud } from './ui/Hud';
@@ -37,8 +38,12 @@ async function main() {
   }
 
   // 網址可帶 ?seed=123 重現特定一局
-  const seedParam = Number(new URLSearchParams(location.search).get('seed'));
-  const game = new Game(world, Number.isFinite(seedParam) && seedParam > 0 ? seedParam : undefined);
+  const params = new URLSearchParams(location.search);
+  const seedParam = Number(params.get('seed'));
+  // 網址可帶 ?difficulty=easy／normal／hard
+  const diffParam = params.get('difficulty');
+  const difficulty = diffParam && diffParam in DIFFICULTIES ? (diffParam as DifficultyKey) : undefined;
+  const game = new Game(world, Number.isFinite(seedParam) && seedParam > 0 ? seedParam : undefined, difficulty);
   new Hud(game, map);
   setupAbout(world);
 

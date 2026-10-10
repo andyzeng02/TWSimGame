@@ -139,6 +139,20 @@ export const DEFAULT_EARTHQUAKE: EarthquakeConfig = {
   grades: { S: 90, A: 80, B: 68, C: 50 },
 };
 
+export type DifficultyKey = 'easy' | 'normal' | 'hard';
+
+/**
+ * 難度：玩家開局可選，只覆寫上面的部分數值（主要是地震規模）。
+ * 評級門檻三種難度相同，所以越難越不容易拿高評級。改這裡也要跑 `npm run batch`。
+ */
+export const DIFFICULTIES: Record<DifficultyKey, { label: string; description: string; overrides: Partial<EarthquakeConfig> }> = {
+  easy: { label: '輕度', description: '規模約 6.6，受困者較少，適合第一次玩', overrides: { magnitude: 6.6 } },
+  normal: { label: '標準', description: '規模約 6.8', overrides: {} },
+  hard: { label: '嚴重', description: '規模約 7.0，受困者多、道路受損嚴重', overrides: { magnitude: 7.0 } },
+};
+
+export const DEFAULT_DIFFICULTY: DifficultyKey = 'normal';
+
 /**
  * 震度估算（遊戲用簡化公式，0–7 對應中央氣象署震度級）。
  * distanceKm：區塊中心到斷層線的距離。

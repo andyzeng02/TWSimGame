@@ -1,4 +1,12 @@
-export { DEFAULT_EARTHQUAKE, intensityAt, trappedRate, type EarthquakeConfig } from './earthquake/config';
+export {
+  DEFAULT_DIFFICULTY,
+  DEFAULT_EARTHQUAKE,
+  DIFFICULTIES,
+  intensityAt,
+  trappedRate,
+  type DifficultyKey,
+  type EarthquakeConfig,
+} from './earthquake/config';
 export {
   createEarthquakeRules,
   gradeOf,

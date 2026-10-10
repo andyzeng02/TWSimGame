@@ -16,7 +16,7 @@ const STEPS: { target: string; title: string; text: string }[] = [
   {
     target: '#left section',
     title: '指揮點數與搜救隊',
-    text: '每個行動都要花指揮點數，點數每小時只回復 2 點，永遠不夠用。怎麼取捨，就是這個遊戲的玩法。',
+    text: '每個行動都要花指揮點數，點數每小時只回復 2 點，永遠不夠用。怎麼取捨，就是這個遊戲的玩法。這裡也可以換難度：輕度、標準、嚴重。',
   },
   {
     target: '#map',

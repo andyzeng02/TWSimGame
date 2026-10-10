@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createSim, runHeadless, validateWorld, type World } from '@twsim/sim-core';
-import { createEarthquakeRules, greedyBot, hospitalBedsByRegion, idleBot, randomBot, intensityAt } from '../src/index';
+import { createEarthquakeRules, DIFFICULTIES, greedyBot, hospitalBedsByRegion, idleBot, randomBot, intensityAt } from '../src/index';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const loadWorld = (): World =>
@@ -132,5 +132,22 @@ describe('增援搜救隊', () => {
     const aided = createSim(w, createEarthquakeRules({ aidTeamsPer1000AtRisk: 4 }), 5).state.scalars;
     assert.equal(base.teamsFree, createEarthquakeRules().config.rescueTeamsTotal);
     assert.equal(aided.teamsFree, base.teamsFree + Math.round((aided.atRisk / 1000) * 4));
+  });
+});
+
+describe('難度', () => {
+  it('同一個種子：輕度 < 標準 < 嚴重（規模與受威脅人數）', () => {
+    const w = loadWorld();
+    const at = (k: keyof typeof DIFFICULTIES) => createSim(w, createEarthquakeRules(DIFFICULTIES[k].overrides), 9).state.scalars;
+    const [e, n, h] = [at('easy'), at('normal'), at('hard')];
+    assert.ok(e.magnitude < n.magnitude && n.magnitude < h.magnitude);
+    assert.ok(e.atRisk < n.atRisk && n.atRisk < h.atRisk);
+  });
+
+  it('三種難度不下指令都拿 D', () => {
+    for (const d of Object.values(DIFFICULTIES)) {
+      const r = runHeadless(loadWorld(), createEarthquakeRules(d.overrides), 4, idleBot);
+      assert.equal(r.end!.grade, 'D', d.label);
+    }
   });
 });

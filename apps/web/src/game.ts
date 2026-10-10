@@ -1,5 +1,5 @@
 import { createSim, type Sim, type StepReport, type World } from '@twsim/sim-core';
-import { createEarthquakeRules, type EqAction } from '@twsim/rules-game';
+import { createEarthquakeRules, DEFAULT_DIFFICULTY, DIFFICULTIES, type DifficultyKey, type EqAction } from '@twsim/rules-game';
 
 /**
  * 遊戲控制器：時間推進、行動佇列。畫面（MapView / Hud）只透過這裡讀寫模擬。
@@ -16,14 +16,20 @@ export class Game {
   sim: Sim<EqAction>;
   /** 本局每小時的紀錄；第 0 筆是地震剛發生時 */
   history: TickRecord[] = [];
-  readonly rules = createEarthquakeRules();
+  rules: ReturnType<typeof createEarthquakeRules>;
   pending: EqAction[] = [];
   playing = false;
   speed = 1;
   private timer: number | null = null;
   private listeners: ((r: StepReport | null) => void)[] = [];
 
-  constructor(private world: World, private seed: number = Date.now() % 1_000_000) {
+  constructor(
+    private world: World,
+    private seed: number = Date.now() % 1_000_000,
+    /** 難度（rules-game 的 DIFFICULTIES） */
+    public difficulty: DifficultyKey = DEFAULT_DIFFICULTY,
+  ) {
+    this.rules = createEarthquakeRules(DIFFICULTIES[difficulty].overrides);
     this.sim = createSim(world, this.rules, seed);
     this.history = [this.startRecord()];
   }
@@ -97,9 +103,12 @@ export class Game {
     this.emit(null);
   }
 
-  restart(seed = Date.now() % 1_000_000) {
+  /** 重新開一局；可同時換難度 */
+  restart(seed = Date.now() % 1_000_000, difficulty: DifficultyKey = this.difficulty) {
     this.pause();
     this.seed = seed;
+    this.difficulty = difficulty;
+    this.rules = createEarthquakeRules(DIFFICULTIES[difficulty].overrides);
     this.pending = [];
     this.sim = createSim(this.world, this.rules, seed);
     this.history = [this.startRecord()];

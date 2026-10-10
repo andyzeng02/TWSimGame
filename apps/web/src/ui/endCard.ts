@@ -1,4 +1,4 @@
-import type { EqAction } from '@twsim/rules-game';
+import { DIFFICULTIES, type EqAction } from '@twsim/rules-game';
 import type { World } from '@twsim/sim-core';
 import type { Game, TickRecord } from '../game';
 import { feedbackUrl } from './feedback';
@@ -26,7 +26,7 @@ export function renderEndCard(game: Game) {
       { class: 'card end-card' },
       el('div', { class: `grade g-${end.grade}` }, end.grade),
       el('h2', {}, end.reason),
-      el('p', {}, `分數 ${end.score.toFixed(1)}`),
+      el('p', {}, `分數 ${end.score.toFixed(1)}・難度「${DIFFICULTIES[game.difficulty].label}」`),
       el(
         'dl',
         {},
@@ -46,13 +46,13 @@ export function renderEndCard(game: Game) {
       el('div', { class: 'legend quiet' }, el('i', { class: 'swatch trapped' }), '受困人口　', el('i', { class: 'swatch deaths' }), '累計死亡'),
       el('h3', {}, '你的決策'),
       decisions(game.history, game.sim.world),
-      el('p', { class: 'quiet' }, `種子 ${game.seedValue}（相同種子會重現同一場地震）`),
+      el('p', { class: 'quiet' }, `種子 ${game.seedValue}（相同種子與難度會重現同一場地震）`),
       again,
       el(
         'a',
         {
           class: 'feedback-link',
-          href: feedbackUrl({ 種子: String(game.seedValue), 評級: end.grade, 分數: end.score.toFixed(1) }),
+          href: feedbackUrl({ 種子: String(game.seedValue), 難度: DIFFICULTIES[game.difficulty].label, 評級: end.grade, 分數: end.score.toFixed(1) }),
           target: '_blank',
           rel: 'noopener',
         },

@@ -1,3 +1,4 @@
+import { DIFFICULTIES, type DifficultyKey } from '@twsim/rules-game';
 import type { Game } from '../game';
 import type { MapView } from '../map/MapView';
 import { renderEndCard } from './endCard';
@@ -45,6 +46,7 @@ export class Hud {
         box.addEventListener('change', () => this.syncToggles(kind, box.checked));
       }
     }
+    this.setupDifficulty();
     const fac = byId<HTMLInputElement>('facilities');
     fac.addEventListener('change', () => map.setFacilities(fac.checked));
     byId('to-command').addEventListener('click', () => this.setScene(false));
@@ -75,6 +77,35 @@ export class Hud {
     this.render();
     // 第一次進指揮模式：先看教學（等震波播完、畫面穩定再開）
     if (!scene && !tutorialDone() && !document.getElementById('tutorial')) setTimeout(() => this.tutorial(), 600);
+  }
+
+  /** 難度選單：換難度會開新的一局；這局已經開始時先確認 */
+  private setupDifficulty() {
+    const select = byId<HTMLSelectElement>('difficulty');
+    for (const [key, d] of Object.entries(DIFFICULTIES)) {
+      const o = new Option(d.label, key);
+      o.title = d.description;
+      select.append(o);
+    }
+    select.value = this.game.difficulty;
+    select.title = DIFFICULTIES[this.game.difficulty].description;
+    select.addEventListener('change', () => {
+      const key = select.value as DifficultyKey;
+      const g = this.game;
+      const inProgress = g.sim.state.tick > 0 && !g.sim.state.ended;
+      if (inProgress && !confirm(`換成「${DIFFICULTIES[key].label}」會開始新的一局，目前這局的進度會消失。確定嗎？`)) {
+        select.value = g.difficulty;
+        return;
+      }
+      select.title = DIFFICULTIES[key].description;
+      this.shocksSeen = 0;
+      g.restart(undefined, key);
+      // 網址同步，方便分享同一個難度
+      const url = new URL(location.href);
+      url.searchParams.set('difficulty', key);
+      url.searchParams.delete('seed');
+      history.replaceState(null, '', url);
+    });
   }
 
   private tutorial() {

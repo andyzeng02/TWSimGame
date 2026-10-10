@@ -224,3 +224,7 @@ body.scene #right { top: 84px; width: 260px; }
 /* 意見回饋連結 */
 #about .button-link { display: inline-block; padding: 6px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper-2); color: var(--ink); text-decoration: none; }
 .feedback-link { display: inline-block; margin-top: 10px; font-size: 12.5px; color: var(--ink-2); }
+
+/* 難度選單 */
+.row.difficulty { align-items: center; cursor: pointer; }
+.row.difficulty select { border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 3px 6px; font: inherit; }

@@ -79,6 +79,8 @@ const KNOWN_FAULTS: [string, string][] = [
   ['木屐寮', 'muchiliao'],
   ['龍船', 'lungchuan'],
   ['仁武', 'jenwu'],
+  ['車瓜林', 'chegualin'],
+  ['口宵里', 'kouhsiaoli'],
 ];
 
 const norm = (s: unknown) => String(s ?? '').trim().replace(/臺/g, '台');
@@ -591,8 +593,19 @@ export function describeSources(a: {
         }
       : { role: '人口', name: '草稿約略值', publisher: '本專案', license: '—', draft: true },
   );
+  const digitized = a.faults && /faults-gsmma-2025/i.test(basename(a.faults));
   list.push(
-    a.faults
+    digitized
+      ? {
+          role: '活動斷層',
+          name: '臺灣活動斷層分布圖（2025）高雄附近 8 條，依圖數化，位置誤差約 1–2 公里',
+          publisher: '經濟部地質調查及礦業管理中心',
+          file: file(a.faults!),
+          version: '2025',
+          license: '依原圖資授權標示來源',
+          url: 'https://www.gsmma.gov.tw/',
+        }
+      : a.faults
       ? {
           role: '活動斷層',
           name: '活動斷層分布',

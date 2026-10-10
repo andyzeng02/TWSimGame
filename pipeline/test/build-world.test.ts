@@ -304,3 +304,17 @@ describe('斷層檔防呆', () => {
     );
   });
 });
+
+describe('數化斷層檔（臺灣活動斷層分布圖 2025）', () => {
+  it('讀得到 8 段斷層，旗山斷層 id 為 chishan，來源標示為數化', async () => {
+    const { buildFaults, loadFileSet } = await import('../build-world');
+    const faults = buildFaults(readFeatures(loadFileSet('pipeline/data/faults-gsmma-2025.geojson')));
+    assert.equal(faults.length, 8);
+    assert.ok(faults.some((f) => f.id === 'chishan' && f.name === '旗山斷層'));
+    const src = describeSources({ boundaries: 'b.shp', faults: 'pipeline/data/faults-gsmma-2025.geojson' });
+    const f = src.find((x) => x.role === '活動斷層')!;
+    assert.match(f.name, /數化/);
+    assert.equal(f.version, '2025');
+    assert.ok(!f.draft);
+  });
+});

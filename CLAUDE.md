@@ -56,7 +56,7 @@ npm run dev          # 網頁版 http://localhost:5173
 npm test             # 全部測試
 npm run typecheck    # 全部套件型別檢查
 npm run batch        # 地震劇本批次跑分（改遊戲數值後必跑）
-npm run build-world -- --boundaries pipeline/raw/TOWN_MOI_1140318.shp   # 重產世界檔
+npm run build-world -- --boundaries <界線.shp> --population <人口.csv> --shelters <避難.csv> --faults pipeline/data/faults-gsmma-2025.geojson   # 重產世界檔（完整指令見 README）
 ```
 
 ## 完成的定義

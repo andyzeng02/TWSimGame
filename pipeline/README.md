@@ -25,7 +25,7 @@ npm run build-world -- --boundaries pipeline\raw\TOWN_MOI_1140318.shp
 | --- | --- | --- |
 | 鄉鎮市區界線 | 上面的連結 | `--boundaries` |
 | 人口統計 | [政府資料開放平台](https://data.gov.tw/) 搜尋「村里戶數、單一年齡人口」（內政部戶政司），選最新月份的 CSV（例如 `opendata11508M030.csv`，全國檔即可） | `--population` |
-| 活動斷層 | 搜尋「活動斷層」（經濟部地質調查及礦業管理中心），要 SHP、KML 或 GeoJSON 格式（KMZ 請先解壓縮）；只有「地圖服務連結」的 CSV 不是斷層資料 | `--faults` |
+| 活動斷層 | 已附 `pipeline/data/faults-gsmma-2025.geojson`（依「臺灣活動斷層分布圖 2025」數化的高雄附近 8 條，誤差約 1–2 公里）。有官方 SHP、KML 或 GeoJSON 時可換掉；只有「地圖服務連結」或測量樁位的檔案不是斷層資料 | `--faults` |
 | 醫院床數（選用） | 搜尋「醫療機構」「病床數」（衛福部），自行整理成 `district,beds` 兩欄 | `--beds` |
 | 避難收容處所（選用） | 搜尋「避難收容處所」（內政部消防署），CSV，需有「經度」「緯度」欄；全國檔也可以，只會留下高雄的點 | `--shelters` |
 | 醫院點位（選用） | 任何含「名稱、經度、緯度」欄的醫院 CSV（有「病床數」欄會一併讀入）；沒提供時，地圖改用 OpenStreetMap 的醫院點 | `--hospitals` |

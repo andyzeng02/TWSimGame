@@ -32,7 +32,7 @@ npm run dev       # 瀏覽器開 http://localhost:5173
 步驟見 [pipeline/README.md](pipeline/README.md)：
 
 ```powershell
-npm run build-world -- --boundaries pipeline\raw\TOWN_MOI_1140318.shp
+npm run build-world -- --boundaries "pipeline\raw\鄉(鎮、市、區)界線1140318\TOWN_MOI_1140318.shp" --population "pipeline\raw\opendata11508M030.csv" --shelters "pipeline\raw\避難收容處所點位檔案v9.csv" --faults pipeline\data\faults-gsmma-2025.geojson
 ```
 
 ## 怎麼玩

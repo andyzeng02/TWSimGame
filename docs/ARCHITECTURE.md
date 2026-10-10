@@ -95,9 +95,14 @@
 6. 區界 `districts-casing` + `districts-line`
 7. 山與水的名稱：主要河川 `waterway_major_label`、湖泊 `lake_name`（`config.ts` 的 `LAKES`）、山峰 `mountain_peak_dot` / `mountain_peak_label`（名稱＋高度）
 8. 底圖的地名標籤（已改成中文）、等高線高度 `contour-labels`
-9. 區名 `district-labels`、斷層 `faults`、醫院與避難所 `facility-dots` / `facility-labels`（世界檔沒有醫院時改用 OSM 醫院點 `osm-hospitals`；指揮模式才顯示）、搜救隊 `teams`
+9. 天氣：雲影 `cloud-shadows`（在災情著色底下）、立體雲朵 `clouds`（最上層；雨絲是地圖外的另一層畫布）
+10. 區名 `district-labels`、斷層 `faults`、醫院與避難所 `facility-dots` / `facility-labels`（世界檔沒有醫院時改用 OSM 醫院點 `osm-hospitals`；指揮模式才顯示）、搜救隊 `teams`
 
 時段：`MapView.setTimeOfDay()` 依 `config.ts` 的 `TIMES` 換天空、光線（`setLight`）、山體陰影方向與配色（清晨、黃昏是白天配色混暖色；夜晚用 `NIGHT_PALETTE`）。只改 paint 屬性、不重建樣式；改完要清掉地形貼圖快取（`freeRtt`），樣式也關掉 paint 漸變，否則地表會殘留舊顏色。
+
+天氣（ROADMAP 1.7）：`MapView.setWeather()` 依 `config.ts` 的 `WEATHERS` 和時段疊加：`overcast()` 把配色、天空、光線降彩度、變暗、偏冷，霧拉近、光線與山體陰影減弱（時段＋天氣的配色會快取，同組合不重算）。雲與雨的畫法在 `map/weather.ts`：
+- 雲 `clouds`（fill-extrusion）：`CloudField` 依固定種子產生雲朵，每團雲三層（下寬上窄）懸在 `baseM` 以上；拉近到 `CLOUDS.fadeZoom` 淡出。雲影 `cloud-shadows`（fill，貼地，在災情著色底下）每朵雲一塊（雲團外包多邊形），依太陽方向偏移，夜晚不畫。雲每 `CLOUDS.frameMs` 更新一次 GeoJSON 往 `driftToward` 飄，超出 `MAP_CONFIG.bounds` 從另一邊繞回；省電模式更新較慢，「減少動態效果」時不飄。
+- 雨 `RainOverlay`：地圖畫布上方、控制按鈕底下的一層 2D 畫布（不擋滑鼠），畫遠近兩批斜雨絲與一層薄灰藍色；`capture()` 會把它疊進截圖。省電模式雨絲減半，「減少動態效果」時是靜止的雨。
 
 省電模式：觸控裝置或 CPU 核心數 ≤ 4 時降低繪圖解析度、縮小圖磚快取、等高線晚一點出現（`MAP_CONFIG.lowPower`）。
 
@@ -120,7 +125,7 @@
 示範資料有捷運紅、橘線、環狀輕軌（約略位置，環狀路線以順行／逆行表示方向），以及 3 條虛構公車路線（沿建國路、民族路、三多路的大致位置），不畫路線也不畫站牌。壅塞程度在 `packages/traffic` 算好，地圖只依 `level` 上色；車輛在兩次更新之間從舊位置滑到新位置（`TRAFFIC.animateMaxMs`），距離超過 `TRAFFIC.snapKm` 直接跳過去。顏色與更新頻率在 `config.ts` 的 `TRAFFIC`。
 
 `MapView` 對外只提供這些方法，不含任何遊戲規則：
-`select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`setRoads`、`resetView`、`startTour`、`stopTour`、`onTourStop`、`setTimeOfDay`、`capture`、`setFacilities`、`playShockwave`、`setTrafficMode`、`setTrafficHidden`、`setTraffic`、`onTrafficPick`、`showPopup`、`closePopup`。
+`select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`setRoads`、`resetView`、`startTour`、`stopTour`、`onTourStop`、`setTimeOfDay`、`setWeather`、`capture`、`setFacilities`、`playShockwave`、`setTrafficMode`、`setTrafficHidden`、`setTraffic`、`onTrafficPick`、`showPopup`、`closePopup`。
 
 ## 交通資料伺服器（apps/server）
 

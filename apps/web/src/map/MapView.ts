@@ -12,6 +12,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { World } from '@twsim/sim-core';
 import { carFootprints, type LngLat, type TrafficMode, type TrafficSnapshot, type Vehicle } from '@twsim/traffic';
 import {
+  CLOUDS,
   CONTOUR,
   DEM_ATTRIBUTION,
   DEM_TILES,
@@ -22,10 +23,14 @@ import {
   TIMES,
   TOUR,
   TRAFFIC,
+  WEATHERS,
+  overcast,
   type Palette,
   type TimeKey,
+  type WeatherKey,
 } from './config';
 import { buildStyle } from './style';
+import { CloudField, RainOverlay } from './weather';
 
 /**
  * 高雄 3D 地景地圖（MapLibre GL）。
@@ -168,6 +173,7 @@ export class MapView {
     onProgress('建立地形與圖層…', 0.5);
     view.setupScene();
     view.setupGameLayers();
+    view.setupWeatherLayers();
     view.setTimeOfDay('day');
     view.setupInteraction();
     onProgress('下載地形與地圖圖磚…', 0.7);
@@ -269,12 +275,44 @@ export class MapView {
    * 只改圖層的 paint 屬性，不重建樣式，所以地形與遊戲圖層都保留。
    */
   setTimeOfDay(key: TimeKey) {
-    const t = TIMES[key];
+    this.timeKey = key;
+    this.applyLook();
+    // 雲影方向跟著太陽換（雲不飄移時也要重畫）
+    const field = this.cloudFields.get(this.weatherKey);
+    if (field && WEATHERS[this.weatherKey].clouds) this.drawClouds(field, this.cloudSeconds());
+  }
+
+  /** 天氣：晴、多雲（立體雲朵與地面雲影）、下雨（雨雲、雨絲、地面較暗）；和時段疊加 */
+  setWeather(key: WeatherKey) {
+    this.weatherKey = key;
+    this.applyLook();
+    this.updateClouds();
+  }
+
+  private timeKey: TimeKey = 'day';
+  private weatherKey: WeatherKey = 'clear';
+  /** 時段＋天氣的配色（同一組合用同一個物件，applyPalette 才認得出沒變） */
+  private looks = new Map<string, Palette>();
+
+  private applyLook() {
+    const t = TIMES[this.timeKey];
+    const w = WEATHERS[this.weatherKey];
     const map = this.map;
-    this.applyPalette(t.palette);
-    map.setSky(t.sky as unknown as SkySpecification);
-    map.setLight({ anchor: 'map', position: [1.5, t.sun.azimuth, t.sun.polar], color: t.light.color, intensity: t.light.intensity });
+    const id = `${this.timeKey}|${this.weatherKey}`;
+    let palette = this.looks.get(id);
+    if (!palette) {
+      palette = w.look ? overcast(t.palette, w.look) : t.palette;
+      palette = { ...palette, hillshade: { ...palette.hillshade, exaggeration: palette.hillshade.exaggeration * w.hillshade } };
+      this.looks.set(id, palette);
+    }
+    this.applyPalette(palette);
+    const sky = w.look ? overcast(t.sky, w.look) : { ...t.sky };
+    if (w.fog) Object.assign(sky, { 'fog-ground-blend': w.fog.ground, 'horizon-fog-blend': w.fog.horizon });
+    map.setSky(sky as unknown as SkySpecification);
+    const lightColor = w.look ? overcast(t.light.color, w.look) : t.light.color;
+    map.setLight({ anchor: 'map', position: [1.5, t.sun.azimuth, t.sun.polar], color: lightColor, intensity: t.light.intensity * w.light });
     if (map.getLayer('hillshade')) map.setPaintProperty('hillshade', 'hillshade-illumination-direction', t.hillshadeDirection);
+    this.styleClouds();
   }
 
   private palette: Palette | null = null;
@@ -376,7 +414,9 @@ export class MapView {
         const copy = document.createElement('canvas');
         copy.width = src.width;
         copy.height = src.height;
-        copy.getContext('2d')!.drawImage(src, 0, 0);
+        const g = copy.getContext('2d')!;
+        g.drawImage(src, 0, 0);
+        this.rain?.paint(g, copy.width, copy.height);
         resolve(copy);
       });
       this.map.triggerRepaint();
@@ -678,6 +718,102 @@ export class MapView {
       paint: { 'text-color': C.label, 'text-halo-color': PALETTE.labelHalo, 'text-halo-width': 1.2 },
     });
 
+  }
+
+  // ---------- 天氣 ----------
+
+  private rain: RainOverlay | null = null;
+  private cloudFields = new Map<WeatherKey, CloudField>();
+  private cloudTimer = 0;
+  /** 雲飄移的起算時間（切換天氣不重來，雲才不會跳回原位） */
+  private cloudStart = performance.now();
+
+  private setupWeatherLayers() {
+    const map = this.map;
+    const empty = { type: 'FeatureCollection' as const, features: [] };
+    map.addSource('cloud-shadows', { type: 'geojson', data: empty });
+    map.addSource('clouds', { type: 'geojson', data: empty });
+    // 雲影貼在地表，畫在災情著色與區界底下
+    map.addLayer(
+      {
+        id: 'cloud-shadows',
+        type: 'fill',
+        source: 'cloud-shadows',
+        layout: { visibility: 'none' },
+        paint: { 'fill-color': CLOUDS.shadowColor, 'fill-opacity': 0, 'fill-antialias': false },
+      },
+      map.getLayer('districts-fill') ? 'districts-fill' : undefined,
+    );
+    // 立體雲朵：懸在空中的平底雲團，拉近時淡出
+    map.addLayer({
+      id: 'clouds',
+      type: 'fill-extrusion',
+      source: 'clouds',
+      layout: { visibility: 'none' },
+      paint: {
+        'fill-extrusion-color': CLOUDS.color.day,
+        'fill-extrusion-base': ['get', 'base'],
+        'fill-extrusion-height': ['get', 'top'],
+        'fill-extrusion-opacity': 0,
+      },
+    });
+    this.rain = new RainOverlay(map.getContainer(), this.lowPower);
+  }
+
+  /** 依時段與天氣設定雲的顏色、濃淡 */
+  private styleClouds() {
+    const map = this.map;
+    const spec = WEATHERS[this.weatherKey].clouds;
+    if (!spec || !map.getLayer('clouds')) return;
+    const color = overcast(CLOUDS.color[this.timeKey], { desaturate: spec.shade, darken: spec.shade * 0.45, cool: spec.shade * 0.2 });
+    const [z0, z1] = CLOUDS.fadeZoom;
+    map.setPaintProperty('clouds', 'fill-extrusion-color', color);
+    map.setPaintProperty('clouds', 'fill-extrusion-opacity', ['interpolate', ['linear'], ['zoom'], z0, spec.opacity, z1, 0]);
+    const night = this.timeKey === 'night' && !CLOUDS.shadowAtNight;
+    map.setPaintProperty('cloud-shadows', 'fill-opacity', night ? 0 : spec.shadow);
+  }
+
+  /** 換天氣：開關雲與雨，雲開始（或停止）飄移 */
+  private updateClouds() {
+    const map = this.map;
+    const w = WEATHERS[this.weatherKey];
+    this.rain?.set(w.rain);
+    clearTimeout(this.cloudTimer);
+    const visibility = w.clouds ? 'visible' : 'none';
+    for (const id of ['clouds', 'cloud-shadows']) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility);
+    if (!w.clouds) return;
+    let field = this.cloudFields.get(this.weatherKey);
+    if (!field) {
+      field = new CloudField(MAP_CONFIG.bounds, w.clouds, CLOUDS.segments, CLOUDS.seed);
+      this.cloudFields.set(this.weatherKey, field);
+    }
+    const step = () => {
+      if (!document.hidden) this.drawClouds(field, this.cloudSeconds());
+      if (!this.cloudsStill) this.cloudTimer = window.setTimeout(step, this.lowPower ? CLOUDS.lowPowerFrameMs : CLOUDS.frameMs);
+    };
+    step();
+  }
+
+  /** 系統設定「減少動態效果」時雲不飄 */
+  private cloudsStill = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  private cloudSeconds() {
+    return this.cloudsStill ? 0 : (performance.now() - this.cloudStart) / 1000;
+  }
+
+  private drawClouds(field: CloudField, seconds: number) {
+    const spec = WEATHERS[this.weatherKey].clouds!;
+    const toward = (CLOUDS.driftToward * Math.PI) / 180;
+    const km = CLOUDS.driftKmPerS * seconds;
+    const drift: [number, number] = [Math.sin(toward) * km, Math.cos(toward) * km];
+    // 雲影落在太陽的反方向，太陽越低影子離雲越遠
+    const sun = TIMES[this.timeKey].sun;
+    const heightKm = (spec.baseM + spec.topM[0]) / 2000;
+    const offset = Math.min(CLOUDS.shadowMaxOffsetKm, heightKm * Math.tan((sun.polar * Math.PI) / 180));
+    const away = ((sun.azimuth + 180) * Math.PI) / 180;
+    const shadow: [number, number] = [Math.sin(away) * offset, Math.cos(away) * offset];
+    (this.map.getSource('clouds') as GeoJSONSource | undefined)?.setData(field.features(drift));
+    (this.map.getSource('cloud-shadows') as GeoJSONSource | undefined)?.setData(field.features(drift, shadow));
   }
 
   private setupGameLayers() {

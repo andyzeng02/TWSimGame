@@ -1,10 +1,10 @@
-import { DEFAULT_TIME, TIMES, type TimeKey } from '../map/config';
+import { DEFAULT_TIME, DEFAULT_WEATHER, TIMES, WEATHERS, type TimeKey, type WeatherKey } from '../map/config';
 import type { MapView } from '../map/MapView';
 import { byId } from './format';
 import { shareScreenshot } from './screenshot';
 
 /**
- * 觀景模式工具列：時段、地標導覽、重設視角、截圖。
+ * 觀景模式工具列：時段、天氣、地標導覽、重設視角、截圖。
  * （山體陰影、3D 建築的勾選框兩個模式共用，在 Hud 處理）
  */
 export class SceneBar {
@@ -14,6 +14,18 @@ export class SceneBar {
     map.onTourStop(() => this.showTourStep(null));
     byId('screenshot').addEventListener('click', () => this.screenshot());
     this.setupTimePicker();
+    this.setupWeatherPicker();
+  }
+
+  /** 天氣選單：晴、多雲、下雨（網址 ?weather=cloudy／rain 可直接指定，方便截圖） */
+  private setupWeatherPicker() {
+    const select = byId<HTMLSelectElement>('weather');
+    for (const [key, w] of Object.entries(WEATHERS)) select.append(new Option(w.label, key));
+    const fromUrl = new URLSearchParams(location.search).get('weather');
+    select.value = fromUrl && fromUrl in WEATHERS ? fromUrl : DEFAULT_WEATHER;
+    const apply = () => this.map.setWeather(select.value as WeatherKey);
+    select.addEventListener('change', apply);
+    apply();
   }
 
   /** 時段選單：自動（依台灣現在時間，每 10 分鐘檢查一次）或固定時段 */
@@ -34,7 +46,9 @@ export class SceneBar {
     try {
       const time = byId<HTMLSelectElement>('time');
       const caption = byId('tour-caption');
-      const subtitle = !caption.hidden && caption.textContent ? caption.textContent : time.selectedOptions[0]?.text ?? '';
+      const weather = byId<HTMLSelectElement>('weather').selectedOptions[0];
+      const scene = [time.selectedOptions[0]?.text, weather && weather.value !== 'clear' ? weather.text : ''].filter(Boolean).join('・');
+      const subtitle = !caption.hidden && caption.textContent ? caption.textContent : scene;
       await shareScreenshot(await this.map.capture(), subtitle);
     } finally {
       button.disabled = false;

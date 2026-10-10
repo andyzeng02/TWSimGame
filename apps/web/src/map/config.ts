@@ -152,21 +152,40 @@ export const NIGHT_PALETTE: Palette = {
   },
 };
 
-/** 把配色裡每個 #rrggbb 往 color 混合 amount（0–1），做出清晨、黃昏的暖色調 */
-function tinted(p: Palette, color: string, amount: number): Palette {
-  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  const [tr, tg, tb] = rgb(color);
-  const mix = (v: unknown): unknown => {
-    if (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)) {
-      const [r, g, b] = rgb(v);
-      const m = (a: number, t: number) => Math.round(a + (t - a) * amount).toString(16).padStart(2, '0');
-      return `#${m(r, tr)}${m(g, tg)}${m(b, tb)}`;
+/** 把設定裡每個 #rrggbb 顏色（含巢狀物件、陣列）換成 f 算出的顏色；其他值不變 */
+function mapColors<T>(v: T, f: (rgb: number[]) => number[]): T {
+  const walk = (x: unknown): unknown => {
+    if (typeof x === 'string' && /^#[0-9a-f]{6}$/i.test(x)) {
+      const rgb = [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16));
+      const hex = (c: number) => Math.round(Math.min(255, Math.max(0, c))).toString(16).padStart(2, '0');
+      return `#${f(rgb).map(hex).join('')}`;
     }
-    if (Array.isArray(v)) return v.map(mix);
-    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, mix(x)]));
-    return v;
+    if (Array.isArray(x)) return x.map(walk);
+    if (x && typeof x === 'object') return Object.fromEntries(Object.entries(x).map(([k, y]) => [k, walk(y)]));
+    return x;
   };
-  return mix(p) as Palette;
+  return walk(v) as T;
+}
+
+/** 把配色裡每個顏色往 color 混合 amount（0–1），做出清晨、黃昏的暖色調 */
+function tinted(p: Palette, color: string, amount: number): Palette {
+  const target = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
+  return mapColors(p, (rgb) => rgb.map((c, i) => c + (target[i] - c) * amount));
+}
+
+/**
+ * 陰天、雨天的色調：降低彩度（往同亮度的灰色混）、整體變暗，再帶一點冷色。
+ * 不管白天或夜晚都適用（夜晚不會因為混灰色而變亮）。
+ */
+export function overcast<T>(v: T, look: { desaturate: number; darken: number; cool: number }): T {
+  const cool = [118, 138, 160];
+  return mapColors(v, ([r, g, b]) => {
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    return [r, g, b].map((c, i) => {
+      const grey = (c + (lum - c) * look.desaturate) * (1 - look.darken);
+      return grey + (cool[i] * (1 - look.darken) - grey) * look.cool;
+    });
+  });
 }
 
 type SkySpec = Record<string, unknown>;
@@ -237,6 +256,101 @@ export const TIMES: Record<TimeKey, {
     hillshadeDirection: 315,
   },
 };
+
+export type WeatherKey = 'clear' | 'cloudy' | 'rain';
+
+/** 雲的外型與數量（多雲、下雨各一組） */
+export interface CloudSpec {
+  /** 雲朵數量（分布在 MAP_CONFIG.bounds 範圍） */
+  count: number;
+  /** 每朵雲的寬度範圍（公里） */
+  sizeKm: [number, number];
+  /** 雲底高度（公尺，從地面算）；雲頂高度範圍 */
+  baseM: number;
+  topM: [number, number];
+  /** 雲朵不透明度 */
+  opacity: number;
+  /** 雲色往灰色混的比例（雨雲較暗） */
+  shade: number;
+  /** 地面雲影的濃度（0–1） */
+  shadow: number;
+}
+
+/** 雨絲（畫在地圖上方的一層畫布，螢幕座標） */
+export interface RainSpec {
+  /** 每 100×100 像素的雨絲數 */
+  density: number;
+  /** 雨絲長度（像素）、落下速度（像素／秒） */
+  lengthPx: [number, number];
+  speedPx: [number, number];
+  /** 斜度：每往下 1 像素往右偏幾像素（風） */
+  slant: number;
+  /** 顏色與不透明度 */
+  color: string;
+  alpha: number;
+  /** 整個畫面蓋一層薄薄的灰藍色（雨中空氣較暗，雨絲也比較看得到） */
+  veil: string;
+}
+
+/**
+ * 天氣：晴、多雲、下雨。和時段疊加（任何時段都可以下雨）。
+ * look：地面、天空、光線的色調（overcast）；fog：霧從多近開始（0 = 鏡頭附近、1 = 地平線，越小霧越濃）；
+ * light、hillshade：光線強度、山體陰影的倍率（陰天是散射光，陰影較淡）。
+ */
+export const WEATHERS: Record<WeatherKey, {
+  label: string;
+  look: { desaturate: number; darken: number; cool: number } | null;
+  fog: { ground: number; horizon: number } | null;
+  light: number;
+  hillshade: number;
+  clouds: CloudSpec | null;
+  rain: RainSpec | null;
+}> = {
+  clear: { label: '晴', look: null, fog: null, light: 1, hillshade: 1, clouds: null, rain: null },
+  cloudy: {
+    label: '多雲',
+    look: { desaturate: 0.18, darken: 0.04, cool: 0.04 },
+    fog: { ground: 0.36, horizon: 0.6 },
+    light: 0.85,
+    hillshade: 0.85,
+    clouds: { count: 85, sizeKm: [4, 10], baseM: 1500, topM: [3200, 4800], opacity: 0.94, shade: 0.04, shadow: 0.17 },
+    rain: null,
+  },
+  rain: {
+    label: '下雨',
+    look: { desaturate: 0.42, darken: 0.2, cool: 0.1 },
+    fog: { ground: 0.16, horizon: 0.4 },
+    light: 0.62,
+    hillshade: 0.65,
+    clouds: { count: 120, sizeKm: [8, 16], baseM: 1000, topM: [2600, 3600], opacity: 0.97, shade: 0.65, shadow: 0.26 },
+    rain: { density: 5, lengthPx: [12, 34], speedPx: [700, 1300], slant: 0.18, color: '#eef4fa', alpha: 0.55, veil: 'rgba(52, 66, 84, 0.16)' },
+  },
+};
+
+/** 雲的共同設定：各時段的雲色、飄移、拉近時淡出 */
+export const CLOUDS = {
+  color: { dawn: '#fde6da', day: '#ffffff', dusk: '#f8d2b4', night: '#4a556d' } as Record<TimeKey, string>,
+  shadowColor: '#24303c',
+  /** 夜晚沒有陽光，不畫雲影 */
+  shadowAtNight: false,
+  /** 雲影最遠偏離雲的距離（公里；太陽低時影子拉長，限制在這個距離內） */
+  shadowMaxOffsetKm: 4,
+  /** 雲朵外形：圓用幾邊形近似（少一點邊，有低多邊形的插畫感） */
+  segments: 14,
+  /** 拉近時雲朵淡出（只留雲影），不擋住市區：[開始淡出, 完全消失] 的縮放 */
+  fadeZoom: [10.8, 12.6] as [number, number],
+  /** 飄移速度（公里／秒，畫面效果，不是真實風速）與方向（度，往哪吹；0 = 北、90 = 東） */
+  driftKmPerS: 0.5,
+  driftToward: 60,
+  /** 更新間隔（毫秒）；省電模式較慢 */
+  frameMs: 200,
+  lowPowerFrameMs: 1000,
+  /** 固定種子：每次開啟雲的分布都一樣，截圖可重現 */
+  seed: 20261010,
+};
+
+/** 開場天氣 */
+export const DEFAULT_WEATHER: WeatherKey = 'clear';
 
 /** 開場時段：'auto' 依台灣現在時間，或指定 TimeKey */
 export const DEFAULT_TIME: TimeKey | 'auto' = 'day';

@@ -17,6 +17,7 @@ apps/web/src/
   game.ts            遊戲控制：時間推進、行動佇列
   map/MapView.ts     MapLibre 地圖（地形、陰影、區界、區名、災情著色）
   map/config.ts      地圖設定：插畫風配色 PALETTE、高程來源、鏡頭、天空
+  map/weather.ts     天氣效果：立體雲朵與雲影的形狀、雨絲畫布
   map/style/         自有底圖樣式：base.json（圖層結構）＋ buildStyle()（套配色）
   ui/Hud.ts          介面協調：模式切換、指揮面板（數字、時鐘、事件、圖層按鈕）
   ui/sceneBar.ts     觀景模式工具列：時段、地標導覽、重設視角、截圖

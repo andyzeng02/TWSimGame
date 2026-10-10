@@ -309,8 +309,8 @@ describe('示範公車與分段車廂', () => {
     }
     // 示範公車不畫路線、不加站牌
     const s = demoSnapshot(t);
-    assert.ok(s.lines.every((l) => l.mode === 'metro'));
-    assert.ok(s.stations.every((x) => x.mode === 'metro'));
+    assert.ok(s.lines.every((l) => l.mode !== 'bus'));
+    assert.ok(s.stations.every((x) => x.mode !== 'bus'));
   });
   it('各節長度不同：公車車頭段＋車身段', () => {
     const parts = carFootprints([120.3, 22.6], 0, { cars: 1, lengthM: 12, widthM: 2.5, gapM: 0, sectionsM: [2, 10] });
@@ -320,5 +320,22 @@ describe('示範公車與分段車廂', () => {
     assert.ok(Math.abs(len(parts[1].ring) - 10) < 0.01);
     // 車身段緊接在車頭段後面
     assert.ok(Math.abs(parts[0].ring[2][1] - parts[1].ring[1][1]) < 1e-9);
+  });
+});
+
+describe('示範輕軌', () => {
+  it('環狀輕軌有路線、車站與兩個方向的列車', () => {
+    const s = demoSnapshot(Date.UTC(2026, 9, 10, 4, 0, 0));
+    const line = s.lines.find((l) => l.mode === 'lightrail')!;
+    assert.equal(line.name, '環狀輕軌');
+    assert.equal(line.color, '#7cc142');
+    // 環狀：路線頭尾相接
+    assert.deepEqual(line.path[0][0], line.path[0][line.path[0].length - 1]);
+    const trains = s.vehicles.filter((v) => v.mode === 'lightrail');
+    assert.ok(trains.length >= 4, `輕軌 ${trains.length} 列`);
+    assert.deepEqual([...new Set(trains.map((v) => v.label))].sort(), ['逆行', '順行']);
+    const st = s.stations.filter((x) => x.mode === 'lightrail');
+    assert.equal(st.length, 22);
+    assert.ok(st.every((x) => x.arrivals!.length === 2));
   });
 });

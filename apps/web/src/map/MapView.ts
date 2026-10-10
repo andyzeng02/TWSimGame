@@ -533,7 +533,7 @@ export class MapView {
       const boost = spec.boost ?? M.boost;
       const scale = Math.min(spec.maxScale, Math.max(spec.minScale ?? 1, 2 ** (M.refZoom - zoom)));
       const h = spec.heightM * scale * boost.height;
-      const [w0, w1] = M.windowBand;
+      const [w0, w1] = spec.windowBand ?? M.windowBand;
       const track = v.mode === 'bus' ? [] : (this.trackPaths.get(v.mode) ?? []);
       const shape = { ...spec, widthM: spec.widthM * boost.width };
       for (const car of carFootprints(at, v.bearing, shape, scale, track, M.snapM)) {

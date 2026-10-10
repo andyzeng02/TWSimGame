@@ -1,5 +1,5 @@
 /**
- * 示範資料：沒有連上交通資料伺服器時，畫面仍然看得到「會動的捷運與公車」。
+ * 示範資料：沒有連上交通資料伺服器時，畫面仍然看得到「會動的捷運、輕軌與公車」。
  *
  * 車站與路線座標是約略值，車輛依固定班距在站與站之間移動，**不是即時資料**；
  * 示範公車是虛構路線（不是真實的公車路線），只沿著幾條主要道路的大致位置行駛；
@@ -11,7 +11,9 @@ import type { Arrival, LngLat, Station, TrafficSnapshot, TransitLine, Vehicle } 
 interface DemoLine {
   id: string;
   name: string;
-  mode: 'metro' | 'bus';
+  mode: 'metro' | 'lightrail' | 'bus';
+  /** 環狀路線：最後一站接回第一站，方向顯示順行／逆行 */
+  loop?: boolean;
   /** 班距（秒） */
   headway: number;
   /** 平均行駛速度（公里／小時）與每站停靠秒數 */
@@ -81,6 +83,42 @@ const DEMO_LINES: DemoLine[] = [
     ],
   },
 ];
+
+/** 環狀輕軌（車站座標為約略值，只取部分車站） */
+const DEMO_LIGHTRAIL: DemoLine = {
+  id: 'C',
+  name: '環狀輕軌',
+  mode: 'lightrail',
+  loop: true,
+  headway: 900,
+  speedKmh: 20,
+  dwellS: 20,
+  stations: [
+    ['籬仔內', 120.3326, 22.6031],
+    ['前鎮之星', 120.3178, 22.5964],
+    ['夢時代', 120.3075, 22.5955],
+    ['軟體園區', 120.3010, 22.6037],
+    ['高雄展覽館', 120.2995, 22.6078],
+    ['旅運中心', 120.2950, 22.6135],
+    ['光榮碼頭', 120.2905, 22.6170],
+    ['真愛碼頭', 120.2865, 22.6195],
+    ['駁二大義', 120.2820, 22.6202],
+    ['哈瑪星', 120.2738, 22.6215],
+    ['壽山公園', 120.2750, 22.6278],
+    ['鼓山區公所', 120.2790, 22.6398],
+    ['馬卡道', 120.2855, 22.6505],
+    ['美術館', 120.2895, 22.6560],
+    ['愛河之心', 120.2990, 22.6650],
+    ['新上國小', 120.3065, 22.6685],
+    ['大順民族', 120.3170, 22.6625],
+    ['高雄高工', 120.3235, 22.6480],
+    ['科工館', 120.3230, 22.6390],
+    ['凱旋公園', 120.3265, 22.6260],
+    ['凱旋武昌', 120.3290, 22.6150],
+    ['輕軌機廠', 120.3315, 22.6075],
+    ['籬仔內', 120.3326, 22.6031],
+  ],
+};
 
 /** 示範公車（虛構路線，沿主要道路的大致位置；站名只是路口的約略描述） */
 const DEMO_BUSES: DemoLine[] = [
@@ -187,13 +225,13 @@ export function demoSnapshot(nowMs: number): TrafficSnapshot {
   const lines: TransitLine[] = [];
   const stations = new Map<string, Station>();
 
-  for (const line of [...DEMO_LINES, ...DEMO_BUSES]) {
+  for (const line of [...DEMO_LINES, DEMO_LIGHTRAIL, ...DEMO_BUSES]) {
     const bus = line.mode === 'bus';
     const color = bus ? undefined : LINE_COLORS[line.id];
     if (color) {
       lines.push({
-        id: `metro:${line.id}`,
-        mode: 'metro',
+        id: `${line.mode}:${line.id}`,
+        mode: line.mode,
         name: line.name,
         color,
         path: [line.stations.map(([, lng, lat]) => [lng, lat] as LngLat)],
@@ -201,7 +239,7 @@ export function demoSnapshot(nowMs: number): TrafficSnapshot {
     }
     for (const reverse of [false, true]) {
       const tt = timetable(line, reverse);
-      const toward = tt.names[tt.names.length - 1];
+      const toward = line.loop ? (reverse ? '逆行' : '順行') : tt.names[tt.names.length - 1];
       // 最近一班的發車時間在 t − (t mod 班距)；往前推到還在路上的每一班
       const newest = t % line.headway;
       for (let age = newest, k = 0; age < tt.total; age += line.headway, k++) {
@@ -211,7 +249,7 @@ export function demoSnapshot(nowMs: number): TrafficSnapshot {
           id: `demo:${line.id}:${reverse ? 'b' : 'a'}:${trip}`,
           mode: line.mode,
           line: line.name,
-          label: `往${toward}`,
+          label: line.loop ? toward : `往${toward}`,
           at: p.at,
           bearing: p.bearing,
           status: p.atStation ? `停靠${p.next}` : `下一站 ${p.next}`,
@@ -223,8 +261,8 @@ export function demoSnapshot(nowMs: number): TrafficSnapshot {
       tt.names.forEach((name, i) => {
         if (i === tt.names.length - 1) return;
         const wait = (((tt.arrive[i] - t) % line.headway) + line.headway) % line.headway;
-        const id = `metro:${name}`;
-        const s = stations.get(id) ?? { id, mode: 'metro' as const, name, at: tt.coords[i], arrivals: [] as Arrival[] };
+        const id = `${line.mode}:${name}`;
+        const s = stations.get(id) ?? { id, mode: line.mode, name, at: tt.coords[i], arrivals: [] as Arrival[] };
         s.arrivals!.push({ line: line.name, toward, minutes: Math.floor(wait / 60) });
         stations.set(id, s);
       });

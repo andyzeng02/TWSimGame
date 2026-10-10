@@ -304,6 +304,8 @@ export interface VehicleModel {
   minScale?: number;
   sectionsM?: number[];
   boost?: { width: number; height: number };
+  /** 窗帶位置（整體高度的比例）；沒給就用 TRAFFIC.model.windowBand */
+  windowBand?: [number, number];
 }
 
 /**
@@ -344,7 +346,8 @@ export const TRAFFIC = {
     boost: { width: 2.8, height: 2.6 },
     cars: <Record<'metro' | 'lightrail' | 'rail' | 'bus', VehicleModel>>{
       metro: { cars: 3, lengthM: 23, widthM: 3.2, gapM: 1.5, heightM: 3.8, maxScale: 12 },
-      lightrail: { cars: 5, lengthM: 6.8, widthM: 2.65, gapM: 0.5, heightM: 3.5, maxScale: 12 },
+      // 輕軌：5 節低底盤模組，模組間連接緊密，車窗大（從較低處開始）
+      lightrail: { cars: 5, lengthM: 6.8, widthM: 2.65, gapM: 0.25, heightM: 3.5, maxScale: 12, windowBand: [0.38, 0.82] },
       rail: { cars: 8, lengthM: 20, widthM: 3.2, gapM: 1.5, heightM: 4.1, maxScale: 10 },
       // 公車分兩段：車頭（大擋風玻璃）＋車身；比例比列車細長，近看也至少放大 minScale 倍
       bus: {

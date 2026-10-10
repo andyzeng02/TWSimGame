@@ -117,7 +117,7 @@
 
 3D 車輛：`packages/traffic` 的 `carFootprints()` 把車頭位置展開成一節節車廂的地面矩形（有軌道線形就吸附上去、沿彎道往後排），`MapView` 再用 fill-extrusion 往上擠出三段（車身、窗帶、車頂；車頭窗帶較亮，看得出方向）。拉遠時依 `2^(refZoom − zoom)` 放大，車寬、車高另外加粗（`TRAFFIC.model`），縮放時重畫。公車用 `sectionsM` 分成車頭段與車身段，畫成底盤、車身、窗帶（車頭是擋風玻璃）、車頂四段，外觀在 `TRAFFIC.model.bus`。
 
-示範資料除了捷運紅、橘線，還有 3 條虛構公車路線（沿建國路、民族路、三多路的大致位置），不畫路線也不畫站牌。壅塞程度在 `packages/traffic` 算好，地圖只依 `level` 上色；車輛在兩次更新之間從舊位置滑到新位置（`TRAFFIC.animateMaxMs`），距離超過 `TRAFFIC.snapKm` 直接跳過去。顏色與更新頻率在 `config.ts` 的 `TRAFFIC`。
+示範資料有捷運紅、橘線、環狀輕軌（約略位置，環狀路線以順行／逆行表示方向），以及 3 條虛構公車路線（沿建國路、民族路、三多路的大致位置），不畫路線也不畫站牌。壅塞程度在 `packages/traffic` 算好，地圖只依 `level` 上色；車輛在兩次更新之間從舊位置滑到新位置（`TRAFFIC.animateMaxMs`），距離超過 `TRAFFIC.snapKm` 直接跳過去。顏色與更新頻率在 `config.ts` 的 `TRAFFIC`。
 
 `MapView` 對外只提供這些方法，不含任何遊戲規則：
 `select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`setRoads`、`resetView`、`startTour`、`stopTour`、`onTourStop`、`setTimeOfDay`、`capture`、`setFacilities`、`playShockwave`、`setTrafficMode`、`setTrafficHidden`、`setTraffic`、`onTrafficPick`、`showPopup`、`closePopup`。

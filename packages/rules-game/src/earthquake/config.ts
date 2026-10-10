@@ -27,6 +27,8 @@ export interface EarthquakeConfig {
 
   // 搜救
   rescueTeamsTotal: number;
+  /** 增援：每 1000 名受威脅者，開局多派幾隊搜救隊（大地震時中央與外縣市支援較多，讓難度不只看規模運氣） */
+  aidTeamsPer1000AtRisk: number;
   rescuePerTeamPerTick: number;
   rescuedInjuredShare: number;
   trappedDeathBase: number;
@@ -79,7 +81,7 @@ export interface EarthquakeConfig {
 export const DEFAULT_EARTHQUAKE: EarthquakeConfig = {
   faultId: 'chishan',
   magnitude: 6.8,
-  magnitudeJitter: 0.3,
+  magnitudeJitter: 0.15,
   maxTicks: 72,
 
   cpStart: 6,
@@ -95,6 +97,7 @@ export const DEFAULT_EARTHQUAKE: EarthquakeConfig = {
   },
 
   rescueTeamsTotal: 8,
+  aidTeamsPer1000AtRisk: 1,
   rescuePerTeamPerTick: 3,
   rescuedInjuredShare: 0.6,
   trappedDeathBase: 0.008,

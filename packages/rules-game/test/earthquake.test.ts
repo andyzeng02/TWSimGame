@@ -124,3 +124,13 @@ describe('醫院與避難所參與模擬（ROADMAP 3.3）', () => {
     assert.deepEqual(shelter(), [1, 1]);
   });
 });
+
+describe('增援搜救隊', () => {
+  it('受威脅人數越多，開局待命搜救隊越多', () => {
+    const w = loadWorld();
+    const base = createSim(w, createEarthquakeRules({ aidTeamsPer1000AtRisk: 0 }), 5).state.scalars;
+    const aided = createSim(w, createEarthquakeRules({ aidTeamsPer1000AtRisk: 4 }), 5).state.scalars;
+    assert.equal(base.teamsFree, createEarthquakeRules().config.rescueTeamsTotal);
+    assert.equal(aided.teamsFree, base.teamsFree + Math.round((aided.atRisk / 1000) * 4));
+  });
+});

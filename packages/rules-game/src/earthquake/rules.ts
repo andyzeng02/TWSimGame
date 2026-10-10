@@ -135,8 +135,8 @@ export function createEarthquakeRules(overrides: Partial<EarthquakeConfig> = {})
       }
 
       state.scalars.cp = cfg.cpStart;
-      state.scalars.teamsFree = cfg.rescueTeamsTotal;
       state.scalars.atRisk = total(ctx, 'trapped') + total(ctx, 'injured');
+      state.scalars.teamsFree = cfg.rescueTeamsTotal + Math.round((state.scalars.atRisk / 1000) * cfg.aidTeamsPer1000AtRisk);
       state.scalars.aftershocksPlanned = aftershocks;
 
       const worst = I.reduce((best, x, i) => (x > I[best] ? i : best), 0);

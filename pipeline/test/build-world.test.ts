@@ -292,3 +292,15 @@ describe('政府資料實際格式', () => {
     ]);
   });
 });
+
+describe('斷層檔防呆', () => {
+  it('檔案裡沒有高雄附近的斷層線時停下來，並說明檔案內容', () => {
+    const shp = writeShp(5, [[sq(120.3, 22.65, 0.05)]]);
+    const dbf = writeDbf([{ NAME: '某敏感區' }], 'utf-8');
+    const notFaults = readFeatures({ shp, dbf, cpg: 'UTF-8' });
+    assert.throws(
+      () => buildWorld({ boundaries: fakeBoundaries(), faults: notFaults, sourceNote: '' }),
+      (e: Error) => e instanceof InputError && /線 0 筆、面 1 筆/.test(e.message) && /NAME/.test(e.message),
+    );
+  });
+});

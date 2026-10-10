@@ -475,7 +475,17 @@ export function buildWorld(inp: BuildInputs, opt: BuildOptions = {}): World {
   });
   const edges = buildEdges(raw, regions.map((r) => r.centroid), log);
   let faults: Fault[] = [];
-  if (inp.faults) faults = buildFaults(inp.faults, opt);
+  if (inp.faults) {
+    faults = buildFaults(inp.faults, opt);
+    if (!faults.length) {
+      const count = (k: string) => inp.faults!.filter((f) => f.kind === k).length;
+      const cols = Object.keys(inp.faults[0]?.props ?? {}).slice(0, 12).join(', ');
+      throw new InputError(
+        `斷層檔裡沒有高雄附近的斷層線（檔案內容：線 ${count('line')} 筆、面 ${count('polygon')} 筆、點 ${count('point')} 筆；欄位：${cols}）。` +
+          '請確認下載的是「活動斷層」的線資料；地質敏感區等範圍面資料不能當斷層用。',
+      );
+    }
+  }
   else if (inp.fallbackFaults) {
     faults = inp.fallbackFaults;
     log('[提醒] 沒有斷層檔，暫用草稿世界的示意斷層');

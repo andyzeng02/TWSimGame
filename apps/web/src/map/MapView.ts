@@ -198,6 +198,15 @@ export class MapView {
     }
   }
 
+  /** 街道開關：道路線條、路名、路面與單行道箭頭（鐵路保留，當作地景的一部分） */
+  setRoads(on: boolean) {
+    for (const l of this.map.getStyle().layers) {
+      const sl = 'source-layer' in l ? l['source-layer'] : undefined;
+      const isRoad = (sl === 'transportation' || sl === 'transportation_name') && !l.id.includes('rail');
+      if (isRoad) this.map.setLayoutProperty(l.id, 'visibility', on ? 'visible' : 'none');
+    }
+  }
+
   /** 觀景模式：隱藏災情著色、斷層、搜救隊、醫院與避難所，只留地景、區界、區名 */
   setSceneMode(scene: boolean) {
     this.scene = scene;

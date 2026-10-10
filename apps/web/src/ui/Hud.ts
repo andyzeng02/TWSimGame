@@ -39,13 +39,11 @@ export class Hud {
     byId('play').addEventListener('click', () => (game.playing ? game.pause() : game.play()));
     byId('speed').addEventListener('click', () => game.setSpeed(game.speed >= 4 ? 1 : game.speed * 2));
     byId('announce').addEventListener('click', () => game.queue({ type: 'announce' }));
-    for (const id of ['hillshade', 'hillshade-2']) {
-      const box = byId<HTMLInputElement>(id);
-      box.addEventListener('change', () => this.syncToggles('hillshade', box.checked));
-    }
-    for (const id of ['buildings', 'buildings-2']) {
-      const box = byId<HTMLInputElement>(id);
-      box.addEventListener('change', () => this.syncToggles('buildings', box.checked));
+    for (const kind of ['hillshade', 'buildings', 'roads'] as const) {
+      for (const id of [kind, `${kind}-2`]) {
+        const box = byId<HTMLInputElement>(id);
+        box.addEventListener('change', () => this.syncToggles(kind, box.checked));
+      }
     }
     const fac = byId<HTMLInputElement>('facilities');
     fac.addEventListener('change', () => map.setFacilities(fac.checked));
@@ -84,11 +82,13 @@ export class Hud {
     startTutorial();
   }
 
-  private syncToggles(kind: 'hillshade' | 'buildings', on: boolean) {
+  /** 觀景與指揮模式各有一組勾選框，兩邊保持同步 */
+  private syncToggles(kind: 'hillshade' | 'buildings' | 'roads', on: boolean) {
     byId<HTMLInputElement>(kind).checked = on;
     byId<HTMLInputElement>(`${kind}-2`).checked = on;
     if (kind === 'hillshade') this.map.setHillshade(on);
-    else this.map.setBuildings(on);
+    else if (kind === 'buildings') this.map.setBuildings(on);
+    else this.map.setRoads(on);
   }
 
   render() {

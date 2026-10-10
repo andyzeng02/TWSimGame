@@ -9,7 +9,7 @@
  * 參數：
  *   --boundaries  鄉鎮市區界線 .shp（同名的 .dbf、.cpg 要放在旁邊）或 .geojson   必要
  *   --population  人口 CSV（村里或鄉鎮市區層級皆可）                             建議
- *   --faults      活動斷層 .shp 或 .geojson                                      建議
+ *   --faults      活動斷層 .shp、.geojson 或 .kml                                建議
  *   --beds        醫院床數 CSV（欄位：district,beds）                            選用
  *   --shelters    避難收容處所 CSV（需有經度、緯度欄；全國檔也行，只留高雄）     選用
  *   --hospitals   醫院點位 CSV（需有經度、緯度欄；有病床數欄會一併讀入）         選用
@@ -111,6 +111,36 @@ export interface FileSet {
   geojson?: string;
 }
 
+/**
+ * 簡易 KML → GeoJSON：每個 Placemark 的名稱、ExtendedData 欄位，以及其中的 LineString／Polygon／Point。
+ * 政府資料常見的 KML 結構就夠用；不支援 KMZ（請先解壓縮成 .kml）。
+ */
+export function kmlToGeoJson(kml: string): string {
+  const text = (s: string) =>
+    s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, '').trim();
+  const coords = (s: string): XY[] =>
+    s
+      .trim()
+      .split(/\s+/)
+      .map((t) => t.split(',').map(Number))
+      .filter((p) => p.length >= 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]))
+      .map((p) => [p[0], p[1]] as XY);
+  const features: unknown[] = [];
+  for (const pm of kml.match(/<Placemark[\s\S]*?<\/Placemark>/g) ?? []) {
+    const props: Record<string, unknown> = {};
+    const name = pm.match(/<name>([\s\S]*?)<\/name>/);
+    if (name) props.NAME = text(name[1]);
+    for (const m of pm.matchAll(/<(?:Simple)?Data name="([^"]+)"[^>]*>([\s\S]*?)<\/(?:Simple)?Data>/g)) {
+      props[m[1]] = text(m[2].replace(/<\/?value>/g, ''));
+    }
+    const lines = [...pm.matchAll(/<LineString>[\s\S]*?<coordinates>([\s\S]*?)<\/coordinates>/g)].map((m) => coords(m[1]));
+    const polys = [...pm.matchAll(/<Polygon>[\s\S]*?<coordinates>([\s\S]*?)<\/coordinates>/g)].map((m) => coords(m[1]));
+    if (lines.length) features.push({ type: 'Feature', properties: props, geometry: { type: 'MultiLineString', coordinates: lines } });
+    else if (polys.length) features.push({ type: 'Feature', properties: props, geometry: { type: 'MultiPolygon', coordinates: polys.map((r) => [r]) } });
+  }
+  return JSON.stringify({ type: 'FeatureCollection', features });
+}
+
 export function readFeatures(files: FileSet): Feature[] {
   let feats: Feature[];
   if (files.geojson !== undefined) {
@@ -152,6 +182,7 @@ export function readFeatures(files: FileSet): Feature[] {
 
 export function loadFileSet(path: string): FileSet {
   if (/\.(geo)?json$/i.test(path)) return { geojson: readFileSync(path, 'utf8') };
+  if (/\.kml$/i.test(path)) return { geojson: kmlToGeoJson(decodeText(readFileSync(path))) };
   const base = path.replace(/\.shp$/i, '');
   const find = (ext: string) => [base + ext, base + ext.toUpperCase()].find(existsSync);
   const dbf = find('.dbf');
@@ -583,10 +614,16 @@ export function describeSources(a: {
   return list;
 }
 
-/** 檔名裡的 7 位數民國日期（例如 1140318）→ 西元 YYYY-MM-DD；沒有就回傳 undefined */
+/**
+ * 檔名裡的民國日期 → 西元：7 位數（1140318）→ 2025-03-18；
+ * 5 位數年月（戶政司檔名 opendata11508M030）→ 2026-08。沒有就回傳 undefined。
+ */
 export function rocDateIn(path: string): string | undefined {
   const m = basename(path).match(/(?<!\d)(\d{3})(\d{2})(\d{2})(?!\d)/);
-  if (!m) return undefined;
+  if (!m) {
+    const ym = basename(path).match(/(?<!\d)(1\d{2})(0[1-9]|1[0-2])(?!\d)/);
+    return ym ? `${Number(ym[1]) + 1911}-${ym[2]}` : undefined;
+  }
   const [y, mo, d] = [Number(m[1]) + 1911, Number(m[2]), Number(m[3])];
   if (mo < 1 || mo > 12 || d < 1 || d > 31) return undefined;
   return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;

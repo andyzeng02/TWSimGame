@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { lonLatToTm2, pointInRings, type XY } from '@twsim/geo';
-import { buildWorld, checkInputFiles, describeSources, InputError, readFacilities, readFeatures, rocDateIn } from '../build-world';
+import { buildWorld, checkInputFiles, describeSources, kmlToGeoJson, readPopulation, InputError, readFacilities, readFeatures, rocDateIn } from '../build-world';
 import { writeDbf, writeShp } from '../../packages/geo/test/writers';
 
 /** 以經緯度描述的方塊，輸出成 TM2 公尺座標（模擬國土測繪中心的 TM2 版本） */
@@ -250,5 +250,45 @@ describe('輸入檔檢查', () => {
     assert.match(msg, /TOWN_MOI_1140318\.shp/);
     assert.ok(!msg.includes('readme.txt'), '只列資料檔');
     assert.equal(checkInputFiles({ boundaries: join(dir, 'TOWN_MOI_1140318.shp') }, dir), null);
+  });
+});
+
+describe('政府資料實際格式', () => {
+  it('戶政司「村里戶數、單一年齡人口」：區域別＋人口數，各村里加總成區，只留高雄', () => {
+    const csv = [
+      '統計年月,區域別代碼,區域別,村里,戶數,人口數,人口數-男,人口數-女,0歲-男,0歲-女',
+      '11508,65000010001,新北市板橋區,留侯里,733,1613,774,839,2,3',
+      '11508,64000050001,高雄市三民區,德智里,500,1200,600,600,1,1',
+      '11508,64000050002,高雄市三民區,德仁里,400,800,400,400,1,1',
+      '11508,64000080001,高雄市苓雅區,城北里,700,1500,700,800,1,1',
+      '11508,64000100001,高雄市旗津區,中洲里,300,600,300,300,0,1',
+    ].join('\n');
+    const pop = readPopulation(csv, ['三民區', '苓雅區', '旗津區']);
+    assert.deepEqual([...pop.entries()], [
+      ['三民區', 2000],
+      ['苓雅區', 1500],
+      ['旗津區', 600],
+    ]);
+    assert.equal(rocDateIn('opendata11508M030.csv'), '2026-08');
+  });
+
+  it('KML 斷層：讀出名稱與線段', () => {
+    const kml = `<?xml version="1.0"?><kml><Document>
+      <Placemark><name><![CDATA[旗山斷層]]></name>
+        <ExtendedData><SchemaData><SimpleData name="類別">第一類</SimpleData></SchemaData></ExtendedData>
+        <LineString><coordinates>120.45,22.9,0 120.40,22.8,0
+          120.36,22.7,0</coordinates></LineString></Placemark>
+      <Placemark><name>點</name><Point><coordinates>120,22</coordinates></Point></Placemark>
+    </Document></kml>`;
+    const f = readFeatures({ geojson: kmlToGeoJson(kml) });
+    assert.equal(f.length, 1);
+    assert.equal(f[0].kind, 'line');
+    assert.equal(f[0].props.NAME, '旗山斷層');
+    assert.equal(f[0].props['類別'], '第一類');
+    assert.deepEqual(f[0].parts[0], [
+      [120.45, 22.9],
+      [120.4, 22.8],
+      [120.36, 22.7],
+    ]);
   });
 });

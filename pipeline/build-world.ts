@@ -19,7 +19,7 @@
  *
  * 座標：經緯度與 TWD97 TM2（公尺）都接受，會自動判斷。
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -485,6 +485,32 @@ function parseArgs(argv: string[]): Record<string, string> {
   return out;
 }
 
+const FILE_ARGS = ['boundaries', 'population', 'faults', 'beds', 'shelters', 'hospitals'];
+
+/**
+ * 執行前先確認輸入檔都存在；找不到時回傳中文說明，並列出資料夾裡實際有的資料檔，
+ * 方便直接複製正確檔名。全部都在就回傳 null。
+ */
+export function checkInputFiles(a: Record<string, string>, rawDir: string): string | null {
+  const missing = FILE_ARGS.filter((k) => a[k] !== undefined && !existsSync(a[k]));
+  if (!missing.length) return null;
+  let files: string[] = [];
+  try {
+    files = readdirSync(rawDir).filter((f) => /\.(shp|csv|geojson|json)$/i.test(f));
+  } catch {
+    // 資料夾不存在
+  }
+  return [
+    '找不到這些檔案：',
+    ...missing.map((k) => `  --${k} ${a[k]}`),
+    '',
+    files.length ? `${rawDir} 裡目前有：` : `${rawDir} 裡沒有任何 .shp／.csv 檔，請先把下載的資料解壓縮到這裡。`,
+    ...files.map((f) => `  ${f}`),
+    '',
+    '請把指令裡的檔名換成上面實際的檔名（路徑可寫成 pipeline\\raw\\檔名）。',
+  ].join('\n');
+}
+
 const GOV_LICENSE = '政府資料開放授權條款－第 1 版';
 
 /**
@@ -572,6 +598,16 @@ function main() {
   if (!a.boundaries) {
     console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('*/')[0]);
     process.exit(1);
+  }
+  const problem = checkInputFiles(a, resolve(root, 'pipeline', 'raw'));
+  if (problem) {
+    console.error(`\n[錯誤] ${problem}`);
+    process.exit(1);
+  }
+  for (const k of ['boundaries', 'faults']) {
+    if (a[k]?.toLowerCase().endsWith('.shp') && !existsSync(a[k].replace(/\.shp$/i, '.dbf'))) {
+      console.log(`[提醒] ${a[k]} 旁邊沒有同名的 .dbf，會讀不到名稱欄位；請把壓縮檔裡的所有檔案一起解壓縮`);
+    }
   }
   const opt: BuildOptions = {
     countyCol: a['county-col'],

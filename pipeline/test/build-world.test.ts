@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { lonLatToTm2, pointInRings, type XY } from '@twsim/geo';
-import { buildWorld, describeSources, InputError, readFacilities, readFeatures, rocDateIn } from '../build-world';
+import { buildWorld, checkInputFiles, describeSources, InputError, readFacilities, readFeatures, rocDateIn } from '../build-world';
 import { writeDbf, writeShp } from '../../packages/geo/test/writers';
 
 /** 以經緯度描述的方塊，輸出成 TM2 公尺座標（模擬國土測繪中心的 TM2 版本） */
@@ -234,5 +234,21 @@ describe('設施點（ROADMAP 2.3）', () => {
         ['shelter', '三民國小', undefined],
       ],
     );
+  });
+});
+
+describe('輸入檔檢查', () => {
+  it('找不到檔案時列出資料夾裡實際有的檔名', async () => {
+    const { mkdtempSync, writeFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { tmpdir } = await import('node:os');
+    const dir = mkdtempSync(join(tmpdir(), 'raw-'));
+    writeFileSync(join(dir, 'TOWN_MOI_1140318.shp'), '');
+    writeFileSync(join(dir, 'readme.txt'), '');
+    const msg = checkInputFiles({ boundaries: join(dir, 'TOWN_MOI_xxxxxxx.shp') }, dir)!;
+    assert.match(msg, /--boundaries .*TOWN_MOI_xxxxxxx\.shp/);
+    assert.match(msg, /TOWN_MOI_1140318\.shp/);
+    assert.ok(!msg.includes('readme.txt'), '只列資料檔');
+    assert.equal(checkInputFiles({ boundaries: join(dir, 'TOWN_MOI_1140318.shp') }, dir), null);
   });
 });

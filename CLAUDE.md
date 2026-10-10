@@ -1,7 +1,7 @@
 # CLAUDE.md
 
-台灣微縮模擬：以真實地形與 OpenStreetMap 地景呈現的 3D 高雄，加上「地震 72 小時」災害應變劇本。
-**目前重點是地景（立體、好看、真實），遊戲性其次。**
+台灣微縮模擬：以真實地形與 OpenStreetMap 地景呈現的 3D 高雄，加上即時交通與「地震 72 小時」災害應變劇本。
+**目前重點是即時交通（ROADMAP 階段 T）：交通模式介面、TDX 串接、管理後台。遊戲性暫停開發（保留可玩，不要再加功能）。**
 
 開始任何工作前先讀：
 
@@ -28,6 +28,11 @@ apps/web/src/
   ui/loading.ts      載入畫面的高雄剪影
   ui/about.ts        「關於」頁：免責聲明、資料來源與授權
   ui/screenshot.ts   一鍵截圖分享
+  ui/trafficPanel.ts 交通模式左側面板與點選說明框
+  traffic/feed.ts    即時交通資料取得（伺服器或示範資料）
+  admin/main.ts      交通資料管理後台（admin.html）
+apps/server/src      交通資料伺服器：TDX 連線、定時抓取、公開與管理 API
+packages/traffic     即時交通統一格式、TDX 回應轉換、示範資料（無依賴）
 packages/sim-core    模擬核心（無依賴）
 packages/geo         地理工具：Shapefile、TWD97、多邊形、CSV（無依賴）
 packages/rules-game  地震 72 小時規則、數值、機器人、批次跑分
@@ -38,12 +43,13 @@ docs/                架構、路線圖、決策紀錄
 
 ## 硬規則
 
-1. **依賴只能往內**：`sim-core`、`geo` 不 import 任何其他套件，也不碰 DOM 或 Node API。
+1. **依賴只能往內**：`sim-core`、`geo`、`traffic` 不 import 任何其他套件，也不碰 DOM 或 Node API。
 2. **sim-core 不知道遊戲變數的意義**。「受困」「秩序」等名詞只出現在 rules-game 與 apps/web。
 3. **結果可重現**：模擬中只能用 `ctx.rng`，禁止 `Math.random()`、`Date.now()`。
 4. **tick 順序固定**：行動 → 到期事件 → spread → local → tick++ → checkEnd。
 5. **數值集中**：遊戲數值在 `rules-game/src/earthquake/config.ts`，地圖設定在 `apps/web/src/map/config.ts`。
-6. **地圖不含規則**：`MapView` 只接收嚴重度、搜救隊數等「要畫什麼」，不做任何判斷。
+6. **地圖不含規則**：`MapView` 只接收嚴重度、搜救隊數、壅塞程度、車輛位置等「要畫什麼」，不做任何判斷。
+10. **金鑰只放伺服器**：TDX 等需要金鑰的服務只能由 `apps/server` 呼叫；網頁版（公開在 GitHub Pages）不能出現任何金鑰。
 7. **地圖只畫區界線**：不要畫區塊之間的連線，也不要做浮空台座（使用者明確不要）。
 8. **不提其他作品**：文件、註解、介面文字不要寫其他遊戲或作品的名稱當參考對象（使用者不希望被認為抄襲）；風格用自己的話描述。
 9. **外部資料要標示來源**：新增任何圖磚或資料來源，同時更新 `docs/ARCHITECTURE.md` 的外部服務表、README，以及 `map/config.ts` 的 `MAP_SOURCES`（「關於」頁會列出）。
@@ -56,6 +62,7 @@ npm run dev          # 網頁版 http://localhost:5173
 npm test             # 全部測試
 npm run typecheck    # 全部套件型別檢查
 npm run batch        # 地震劇本批次跑分（改遊戲數值後必跑）
+npm run server       # 交通資料伺服器 http://localhost:8787（管理後台 http://localhost:5173/admin.html）
 npm run build-world -- --boundaries <界線.shp> --population <人口.csv> --shelters <避難.csv> --faults pipeline/data/faults-gsmma-2025.geojson   # 重產世界檔（完整指令見 README）
 ```
 
@@ -73,7 +80,8 @@ npm run build-world -- --boundaries <界線.shp> --population <人口.csv> --she
 - **回覆使用者一律用繁體中文**（包含進度說明與總結）。
 - 註解、介面文字用繁體中文；識別字用英文。
 - 單位：1 tick = 1 小時；距離公里；物資以天計；秩序、通行率為 0–1。
-- 測試放在 `packages/*/test/` 與 `pipeline/test/`，用 `node:test`。
+- 測試放在 `packages/*/test/`、`apps/server/test/` 與 `pipeline/test/`，用 `node:test`。
+- 雲端開發環境連不到 TDX 與地圖圖磚；TDX 相關測試用假的 fetch 與依 TDX 文件格式做的樣本。
 - 遊戲畫面保留免責聲明：「本遊戲為虛構情境，非地震預測」。
 - 使用者希望每次多做幾個步驟：能一起完成的 ROADMAP 項目就一次做完，最後一起推送、一起回報。
 - 使用者用 Windows（PowerShell），專案在 `E:\ClaudeCode\TWSimGame`；指令與路徑說明要能在 Windows 上照做。

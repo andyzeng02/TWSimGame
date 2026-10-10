@@ -1,0 +1,86 @@
+/* 交通資料管理後台：沿用網頁版的紙色配色，但可以捲動 */
+:root {
+  --paper: #f6f2ea;
+  --paper-2: #ece6da;
+  --ink: #2a2723;
+  --ink-2: #6e675d;
+  --line: #d6cfc1;
+  --accent: #2f6fdf;
+  --bad: #c4523a;
+  --warn: #c98a1b;
+  --good: #2e9a4f;
+  --radius: 10px;
+  --font: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body.admin { margin: 0; background: #e9e4da; color: var(--ink); font: 14px/1.55 var(--font); }
+code { font-size: 12px; background: var(--paper-2); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--accent); }
+.quiet { color: var(--ink-2); font-size: 12.5px; }
+.good { color: var(--good); }
+.err { color: var(--bad); }
+
+.admin-top {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 16px; padding: 10px 20px;
+  background: color-mix(in srgb, var(--paper) 94%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; flex-direction: column; }
+.brand strong { font-size: 16px; }
+.tag { font-size: 11px; color: var(--accent); font-weight: 600; }
+#who { flex: 1; }
+.button-link { padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); text-decoration: none; font-size: 13px; }
+
+main { max-width: 1080px; margin: 0 auto; padding: 20px 16px 60px; display: flex; flex-direction: column; gap: 16px; }
+#dash { display: flex; flex-direction: column; gap: 16px; }
+#dash[hidden], #login[hidden] { display: none; }
+.card-box { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; box-shadow: 0 6px 24px rgba(60, 50, 30, 0.06); }
+.card-box h2 { margin: 0 0 8px; font-size: 16px; }
+.card-box p { margin: 0 0 12px; }
+
+button, input, textarea { font: inherit; }
+button { border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+button:disabled { opacity: 0.5; cursor: default; }
+button.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+input, textarea { border: 1px solid var(--line); background: #fffdf8; border-radius: 8px; padding: 6px 9px; color: var(--ink); }
+input:disabled { background: var(--paper-2); }
+textarea { width: 100%; resize: vertical; }
+
+#login-form { display: flex; flex-direction: column; gap: 10px; max-width: 420px; }
+#login-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); }
+#login-form label.inline { flex-direction: row; align-items: center; gap: 6px; }
+#login-form button { align-self: flex-start; }
+.msg { font-size: 13px; }
+.msg.good { color: var(--good); }
+.msg.err { color: var(--bad); }
+
+.grid-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.grid-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.tile { display: flex; flex-direction: column; padding: 8px 12px; border-radius: 8px; background: var(--paper-2); }
+.tile span { font-size: 11.5px; color: var(--ink-2); }
+.tile strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.tile.good strong { color: var(--good); }
+.tile.warn strong { color: var(--warn); }
+
+.table-wrap { overflow-x: auto; }
+#connectors { width: 100%; border-collapse: collapse; font-size: 13px; }
+#connectors th, #connectors td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+#connectors thead th { color: var(--ink-2); font-weight: 600; white-space: nowrap; }
+#connectors tr.group th { background: var(--paper-2); color: var(--ink); font-size: 12.5px; padding: 5px 8px; }
+#connectors tr.off td { opacity: 0.6; }
+#connectors .paths { display: block; margin-top: 4px; white-space: pre; font-size: 11px; background: none; padding: 0; color: var(--ink-2); }
+#connectors .interval { white-space: nowrap; }
+#connectors .interval input { width: 84px; }
+#connectors td .err { display: inline-block; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+
+#log { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; font-size: 12.5px; }
+#log li { padding: 4px 0; border-bottom: 1px dashed var(--line); }
+#log li.error { color: var(--bad); }
+#log .t { display: inline-block; min-width: 130px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 700px) {
+  .admin-top { flex-wrap: wrap; padding: 8px 12px; }
+  .grid-form { grid-template-columns: 1fr; }
+}

@@ -20,7 +20,7 @@ h4 { margin-top: 14px; }
 
 #map { position: fixed; inset: 0; }
 
-.panel, #topbar, #left, #right {
+.panel, #topbar, #left, #right, #traffic {
   background: color-mix(in srgb, var(--paper) 92%, transparent);
   backdrop-filter: blur(6px);
   border: 1px solid var(--line);
@@ -174,6 +174,57 @@ body.scene #right { top: 84px; width: 260px; }
   #scenebar { left: 8px; right: 8px; flex-wrap: wrap; gap: 8px 12px; }
   body.scene #right { top: auto; bottom: 36px; left: 8px; right: 8px; width: auto; }
   #warnings { top: auto; bottom: calc(34vh + 44px); max-width: calc(100% - 16px); }
+}
+
+/* 交通模式：左側面板 */
+#traffic {
+  position: fixed; top: 84px; left: 12px; width: 272px; max-height: calc(100% - 140px); overflow-y: auto;
+  padding: 14px; display: flex; flex-direction: column; gap: 16px;
+}
+#traffic[hidden] { display: none; }
+#traffic section { display: flex; flex-direction: column; gap: 6px; }
+#traffic h3 { margin: 0; }
+.traffic-head { display: flex; align-items: center; justify-content: space-between; }
+.traffic-head h3 { font-size: 15px; color: var(--ink); }
+.badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: #fff; background: var(--ink-2); }
+.badge.live { background: #2e9a4f; }
+.badge.live::before { content: '● '; animation: blink 1.6s infinite; }
+.badge.demo { background: var(--warn); }
+.badge.offline { background: var(--bad); }
+@keyframes blink { 50% { opacity: 0.3; } }
+#traffic-layers { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.traffic-chip { display: flex; align-items: center; gap: 2px; text-align: left; font: inherit; font-size: 12.5px; cursor: pointer; }
+.traffic-chip small { margin-left: auto; font-size: 10.5px; opacity: 0.8; }
+.chip.traffic-chip:not(.on) { opacity: 0.55; }
+.chip.traffic-chip.on { background: var(--paper); color: var(--ink); border-color: var(--ink-2); }
+#traffic-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11.5px; color: var(--ink-2); }
+.legend-item .swatch { width: 14px; height: 4px; }
+#traffic-feeds { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+#traffic-feeds li { display: flex; gap: 6px; align-items: baseline; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+#traffic-feeds .name { flex: 1; }
+#traffic-feeds .ok .mark { color: #2e9a4f; }
+#traffic-feeds .err .mark { color: var(--bad); }
+#traffic-server summary { cursor: pointer; font-size: 12.5px; color: var(--ink-2); }
+#traffic-api-form { display: flex; gap: 6px; margin: 8px 0 4px; }
+#traffic-api { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12.5px; background: var(--paper); }
+#traffic-server button { border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12.5px; cursor: pointer; }
+#traffic-server button.link { border: 0; background: none; padding: 0; text-decoration: underline; color: var(--ink-2); }
+#traffic-server a { color: var(--accent); font-size: 12.5px; }
+#traffic-attribution { font-size: 11px; }
+#traffic .wide { cursor: pointer; font: inherit; }
+body.traffic #to-traffic { background: var(--accent); border-color: var(--accent); }
+
+/* 交通模式：地圖上的說明框 */
+.traffic-popup .maplibregl-popup-content { background: var(--paper); color: var(--ink); border-radius: 10px; padding: 10px 26px 10px 12px; font: 13px/1.5 var(--font); box-shadow: 0 8px 28px rgba(40, 30, 20, 0.2); }
+.traffic-popup .maplibregl-popup-close-button { font-size: 16px; padding: 2px 6px; }
+.traffic-info h4 { margin: 0 0 4px; font-size: 14px; color: var(--ink); }
+.traffic-info h4 small { color: var(--ink-2); font-weight: 400; }
+.traffic-info .arrivals { list-style: none; margin: 4px 0 0; padding: 0; }
+.traffic-info .arrivals li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; border-bottom: 1px dashed var(--line); }
+.traffic-info .demo-note { margin-top: 4px; color: var(--warn); }
+
+@media (max-width: 760px) {
+  #traffic { top: auto; bottom: 36px; left: 8px; right: 8px; width: auto; max-height: 42vh; }
 }
 
 /* 關於頁 */

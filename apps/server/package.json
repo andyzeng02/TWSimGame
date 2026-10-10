@@ -1,0 +1,13 @@
+{
+  "name": "@twsim/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "交通資料伺服器：保管 TDX 金鑰、定時抓取即時交通資料，提供前端與管理後台的 API。",
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@twsim/traffic": "*"
+  }
+}

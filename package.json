@@ -10,10 +10,11 @@
   "scripts": {
     "dev": "npm run dev -w @twsim/web",
     "build": "npm run build -w @twsim/web",
-    "test": "tsx --test packages/sim-core/test/*.test.ts packages/rules-game/test/*.test.ts packages/geo/test/*.test.ts pipeline/test/*.test.ts",
-    "typecheck": "tsc -p packages/sim-core && tsc -p packages/rules-game && tsc -p packages/geo && tsc -p pipeline && tsc -p apps/web",
+    "test": "tsx --test packages/sim-core/test/*.test.ts packages/rules-game/test/*.test.ts packages/geo/test/*.test.ts packages/traffic/test/*.test.ts apps/server/test/*.test.ts pipeline/test/*.test.ts",
+    "typecheck": "tsc -p packages/sim-core && tsc -p packages/rules-game && tsc -p packages/geo && tsc -p packages/traffic && tsc -p apps/server && tsc -p pipeline && tsc -p apps/web",
     "batch": "tsx packages/rules-game/scripts/batch.ts",
     "sample-world": "tsx tools/make-sample-world.ts",
+    "server": "npm run start -w @twsim/server",
     "build-world": "tsx pipeline/build-world.ts"
   },
   "devDependencies": {

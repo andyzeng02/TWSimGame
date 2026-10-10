@@ -1,10 +1,24 @@
 # 架構說明
 
-最後更新：2026-10-10
+最後更新：2026-10-10（加入即時交通）
 
 ## 一句話
 
 政府開放資料經資料管線變成「世界檔」，模擬核心在世界檔上跑劇本規則，網頁版用 MapLibre 把真實地形、OpenStreetMap 地景和模擬結果畫在一起。
+即時交通由交通資料伺服器向 TDX 定時抓取、整理後提供給網頁版的交通模式。
+
+## 即時交通的資料流
+
+```
+ 交通部 TDX API ──(Client ID／Secret，只在伺服器)──▶ apps/server
+   公車 GPS、捷運／輕軌到站、臺鐵列車、市區路況、公共自行車      │ hub.ts 定時抓取（connectors.ts 列出每個來源）
+                                                              │ packages/traffic 轉成統一格式 TrafficSnapshot
+                                                              ▼
+                             GET /api/traffic/snapshot ──▶ apps/web 交通模式（traffic/feed.ts → ui/trafficPanel.ts → MapView）
+                             /admin/api/*（管理者權杖）◀── apps/web/admin.html 管理後台
+```
+
+沒有設定伺服器、連不上、或伺服器還沒有 TDX 資料時，網頁版改用 `packages/traffic` 的示範資料（約略位置的捷運紅、橘線，依班距移動），畫面標示「示範」。
 
 ## 分層與資料流
 
@@ -34,8 +48,10 @@
 | `packages/sim-core` | 世界與狀態型別、tick 迴圈、事件佇列、擴散、可重現亂數、重播、世界檔檢查 | 無 | 瀏覽器、Node |
 | `packages/geo` | Shapefile/DBF 讀取、TWD97 TM2 轉換、多邊形工具、CSV | 無 | 瀏覽器、Node |
 | `packages/rules-game` | 地震 72 小時規則、遊戲數值、機器人玩家、批次跑分 | sim-core | 瀏覽器、Node |
+| `packages/traffic` | 即時交通統一格式、TDX 回應轉換、示範資料 | 無 | 瀏覽器、Node |
+| `apps/server` | 交通資料伺服器：TDX 連線、定時抓取、公開 API 與管理 API | traffic | Node |
 | `pipeline` | 政府開放資料 → 世界檔 | geo、sim-core | Node |
-| `apps/web` | 3D 地景地圖、遊戲介面 | sim-core、rules-game、maplibre-gl | 瀏覽器 |
+| `apps/web` | 3D 地景地圖、遊戲介面、交通模式、管理後台（`admin.html`） | sim-core、rules-game、traffic、maplibre-gl | 瀏覽器 |
 | `tools` | 輔助腳本（產生草稿世界） | sim-core | Node |
 
 ## 世界檔（data/world/*.json）
@@ -97,8 +113,23 @@
 
 地形用 `setTerrain` 套在整張地圖上，所有圖層會自動貼在地表。高程圖磚含海底地形，透過自訂協定 `flatsea://` 在瀏覽器裡把負高程改成 0（`MAP_CONFIG.flattenSea`），海面才會是平的；等高線也只畫 0 公尺以上。天空與遠景霧氣用 `setSky`。
 
+交通模式：`traffic-roads`（路況著色）、`traffic-lines`（軌道路線）、`traffic-stations`／`traffic-bikes`（車站、公共自行車站）、`traffic-vehicles`（車輛）。壅塞程度在 `packages/traffic` 算好，地圖只依 `level` 上色；車輛在兩次更新之間從舊位置滑到新位置（`TRAFFIC.animateMaxMs`），距離超過 `TRAFFIC.snapKm` 直接跳過去。顏色與更新頻率在 `config.ts` 的 `TRAFFIC`。
+
 `MapView` 對外只提供這些方法，不含任何遊戲規則：
-`select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`setRoads`、`resetView`、`startTour`、`stopTour`、`onTourStop`、`setTimeOfDay`、`capture`、`setFacilities`、`playShockwave`。
+`select`、`onSelect`、`setSeverity`、`setTeams`、`setSceneMode`、`setHillshade`、`setBuildings`、`setRoads`、`resetView`、`startTour`、`stopTour`、`onTourStop`、`setTimeOfDay`、`capture`、`setFacilities`、`playShockwave`、`setTrafficMode`、`setTrafficHidden`、`setTraffic`、`onTrafficPick`、`showPopup`、`closePopup`。
+
+## 交通資料伺服器（apps/server）
+
+| 檔案 | 內容 |
+| --- | --- |
+| `src/main.ts` | 進入點（`npm run server`，預設 port 8787） |
+| `src/config.ts` | 設定檔 `apps/server/data/config.json`（不進版控）；環境變數 `PORT`、`ADMIN_TOKEN`、`TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`、`ALLOWED_ORIGINS`、`TRAFFIC_DATA_DIR` 優先 |
+| `src/tdx.ts` | TDX 權杖快取、所有請求排隊（間隔 ≥ 250 毫秒）、錯誤訊息中文化 |
+| `src/connectors.ts` | 資料來源清單：TDX 路徑、預設與最短更新間隔、預設是否啟用 |
+| `src/hub.ts` | 定時執行來源（失敗 60 秒後重試）、保存原始回應、合併成 `TrafficSnapshot`（有新資料才重算） |
+| `src/http.ts` | 公開 API（`/api/health`、`/api/traffic/snapshot`）與管理 API（`/admin/api/*`，Bearer 權杖）；CORS；回應超過 1 KB 用 gzip |
+
+第一次啟動自動產生管理者權杖並印在畫面上。金鑰只在後台顯示頭尾（`mask`）。
 
 ## 模擬（sim-core + rules-game）
 
@@ -119,11 +150,14 @@
 | 內政部消防署 | 避難收容處所點位 | 政府資料開放授權條款 | 不定期更新 |
 | 地質調查及礦業管理中心 | 活動斷層（依 2025 分布圖數化） | 標示來源 | 位置約略；有向量檔時替換 |
 | GitHub Pages | 線上版網頁（`main` 自動部署） | 公開 repo 免費 | 網址公開；打包內容任何人可讀，不可放金鑰 |
+| 交通部 TDX 運輸資料流通服務 | 即時交通（公車、捷運、輕軌、臺鐵、市區路況、公共自行車），由 `apps/server` 呼叫 | 政府資料開放授權條款；免費會員有每秒與每日呼叫上限 | 需要帳號與金鑰；金鑰只能放伺服器 |
 | GoatCounter | 線上版瀏覽統計（`apps/web/index.html`） | 非商業免費、不用 cookie | 外部腳本；被擋時遊戲照常運作，只是不計數 |
 
 ## 已知技術債
 
 - `MapView` 的遊戲圖層（區界、區名、災情著色）定義寫在程式裡；底圖樣式已抽出（`map/style/`）。
 - 地圖完全依賴線上圖磚，離線或 Steam 版需要自架或打包圖磚。
+- 交通 API 每次回傳整份資料（含路段線形），路段多時量偏大；見 ROADMAP T.8。
+- 交通資料伺服器還沒有部署到雲端，線上版目前只會顯示示範資料（ROADMAP T.6）。
 - 醫院病床數尚未接真實資料（管線已支援 `--hospitals`）。
 - 活動斷層是依圖數化的約略位置，拿到官方向量檔後替換。

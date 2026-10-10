@@ -1,4 +1,4 @@
-import { addProtocol, Map as MLMap, NavigationControl, ScaleControl } from 'maplibre-gl';
+import { addProtocol, Map as MLMap, NavigationControl, Popup, ScaleControl } from 'maplibre-gl';
 import mlcontour from 'maplibre-contour';
 import type {
   ExpressionSpecification,
@@ -10,6 +10,7 @@ import type {
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { World } from '@twsim/sim-core';
+import type { LngLat, TrafficMode, TrafficSnapshot, Vehicle } from '@twsim/traffic';
 import {
   CONTOUR,
   DEM_ATTRIBUTION,
@@ -20,6 +21,7 @@ import {
   SHOCKWAVE,
   TIMES,
   TOUR,
+  TRAFFIC,
   type Palette,
   type TimeKey,
 } from './config';
@@ -31,6 +33,7 @@ import { buildStyle } from './style';
  * - 底圖：OpenStreetMap 向量地圖（海岸、河流、湖泊、森林、道路、3D 建築）。
  * - 地形：真實高程，連續到海平面，不做浮空台座。另加山體陰影。
  * - 遊戲圖層只有：行政區界線、區名、（指揮模式下）災情著色、斷層、搜救隊。
+ * - 交通圖層（交通模式）：路況、軌道路線、車站、車輛；資料由外部給，這裡只負責畫。
  *
  * 本類別只負責畫面，不含任何遊戲規則。
  */
@@ -41,6 +44,37 @@ const SEL = ['boolean', ['feature-state', 'selected'], false] as ExpressionSpeci
 const GAME_LAYERS = ['districts-fill', 'faults', 'teams'];
 /** 醫院與避難所（指揮模式才顯示，可用勾選框關掉） */
 const FACILITY_LAYERS = ['facility-dots', 'facility-labels', 'osm-hospitals'];
+
+/** 交通圖層的開關單位：各運具＋道路路況 */
+export type TrafficLayerKey = TrafficMode | 'road';
+/** 點到交通圖層上的東西 */
+export interface TrafficPick {
+  kind: 'vehicle' | 'station' | 'road';
+  id: string;
+  at: LngLat;
+}
+const TRAFFIC_LAYERS = [
+  'traffic-roads',
+  'traffic-lines-casing',
+  'traffic-lines',
+  'traffic-bikes',
+  'traffic-stations',
+  'traffic-station-labels',
+  'traffic-vehicles',
+  'traffic-vehicle-labels',
+];
+const TRAFFIC_PICK: Record<string, TrafficPick['kind']> = {
+  'traffic-vehicles': 'vehicle',
+  'traffic-stations': 'station',
+  'traffic-bikes': 'station',
+  'traffic-roads': 'road',
+};
+/** 各交通圖層固定的篩選條件（再加上使用者關掉的運具） */
+const TRAFFIC_BASE_FILTER: Record<string, FilterSpecification | undefined> = {
+  'traffic-bikes': ['==', ['get', 'mode'], 'bike'],
+  'traffic-stations': ['!=', ['get', 'mode'], 'bike'],
+  'traffic-station-labels': ['!=', ['get', 'mode'], 'bike'],
+};
 
 /**
  * 海面拉平：註冊 flatsea:// 協定，下載高程圖磚後把負高程改成 0 再交給 MapLibre。
@@ -388,6 +422,122 @@ export class MapView {
 
   private tourStopHandlers: (() => void)[] = [];
 
+  // ---------- 交通模式 ----------
+
+  /** 交通圖層整組開關 */
+  setTrafficMode(on: boolean) {
+    this.trafficOn = on;
+    if (on && this.map.getZoom() < TRAFFIC.view.minZoom) {
+      this.stopTour();
+      const { center, zoom, pitch, bearing } = TRAFFIC.view;
+      this.map.flyTo({ center, zoom, pitch, bearing, duration: 1800 });
+    }
+    for (const id of TRAFFIC_LAYERS) if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    if (!on) {
+      this.trafficAnim++;
+      this.popup?.remove();
+    }
+  }
+
+  /** 關掉部分運具或路況 */
+  setTrafficHidden(hidden: TrafficLayerKey[]) {
+    const keep: FilterSpecification = ['!', ['in', ['get', 'mode'], ['literal', hidden]]];
+    for (const id of TRAFFIC_LAYERS) {
+      if (!this.map.getLayer(id)) continue;
+      const base = TRAFFIC_BASE_FILTER[id];
+      this.map.setFilter(id, (base ? ['all', base, keep] : keep) as FilterSpecification);
+    }
+  }
+
+  /**
+   * 畫一份交通資料。車輛從目前畫面上的位置滑到新位置，動畫時間 animateMs；
+   * 移動距離太遠（例如換了資料來源）就直接跳過去。
+   */
+  setTraffic(snap: TrafficSnapshot, animateMs: number) {
+    const fc = <G>(features: { geometry: G; properties: Record<string, unknown> }[]) => ({
+      type: 'FeatureCollection' as const,
+      features: features.map((f) => ({ type: 'Feature' as const, ...f })),
+    });
+    const set = (id: string, data: ReturnType<typeof fc>) => (this.map.getSource(id) as GeoJSONSource | undefined)?.setData(data as never);
+    set(
+      'traffic-roads',
+      fc(
+        snap.roads.map((r) => ({
+          properties: { id: r.id, mode: 'road', level: r.level },
+          geometry: { type: 'MultiLineString', coordinates: r.path },
+        })),
+      ),
+    );
+    set(
+      'traffic-lines',
+      fc(
+        snap.lines.map((l) => ({
+          properties: { id: l.id, mode: l.mode, color: l.color, name: l.name },
+          geometry: { type: 'MultiLineString', coordinates: l.path },
+        })),
+      ),
+    );
+    set(
+      'traffic-stations',
+      fc(
+        snap.stations.map((s) => ({
+          properties: { id: s.id, mode: s.mode, name: s.name, rent: s.bikes ? s.bikes.rent : -1 },
+          geometry: { type: 'Point', coordinates: s.at },
+        })),
+      ),
+    );
+
+    // 車輛：記下起點（目前畫面上的位置）與終點，交給動畫
+    const from = new Map<string, LngLat>();
+    for (const v of snap.vehicles) {
+      const cur = this.vehicleAt.get(v.id);
+      from.set(v.id, cur && km(cur, v.at) < TRAFFIC.snapKm ? cur : v.at);
+    }
+    this.vehicles = snap.vehicles;
+    const id = ++this.trafficAnim;
+    const start = performance.now();
+    const ms = Math.max(1, animateMs);
+    const frame = (now: number) => {
+      if (id !== this.trafficAnim) return;
+      const f = Math.min(1, (now - start) / ms);
+      this.vehicleAt.clear();
+      const features = this.vehicles.map((v) => {
+        const a = from.get(v.id) ?? v.at;
+        const at: LngLat = [a[0] + (v.at[0] - a[0]) * f, a[1] + (v.at[1] - a[1]) * f];
+        this.vehicleAt.set(v.id, at);
+        return {
+          properties: { id: v.id, mode: v.mode, line: v.line, color: v.color ?? TRAFFIC.modeColor[v.mode] },
+          geometry: { type: 'Point', coordinates: at },
+        };
+      });
+      set('traffic-vehicles', fc(features));
+      if (f < 1 && this.trafficOn) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
+  onTrafficPick(handler: (pick: TrafficPick | null) => void) {
+    this.trafficPickHandlers.push(handler);
+  }
+
+  /** 在地圖上顯示說明框（交通模式點選車輛、車站、路段時用） */
+  showPopup(at: LngLat, content: HTMLElement) {
+    this.popup?.remove();
+    this.popup = new Popup({ closeButton: true, maxWidth: '280px', className: 'traffic-popup' }).setLngLat(at).setDOMContent(content).addTo(this.map);
+  }
+
+  closePopup() {
+    this.popup?.remove();
+  }
+
+  private trafficOn = false;
+  private trafficAnim = 0;
+  private vehicles: Vehicle[] = [];
+  /** 每台車目前畫在哪裡（動畫進行中的位置） */
+  private vehicleAt = new Map<string, LngLat>();
+  private trafficPickHandlers: ((pick: TrafficPick | null) => void)[] = [];
+  private popup: Popup | null = null;
+
   // ---------- 建立 ----------
 
   private setupScene() {
@@ -607,6 +757,7 @@ export class MapView {
       paint: { 'text-color': PALETTE.district.label, 'text-halo-color': PALETTE.district.halo, 'text-halo-width': 1.8 },
     });
     this.setupFacilityLayers();
+    this.setupTrafficLayers(firstSymbol);
     add({
       id: 'shockwave',
       type: 'line',
@@ -705,6 +856,136 @@ export class MapView {
     }
   }
 
+  /** 交通圖層（預設隱藏，進交通模式才顯示）；顏色設定在 config.ts 的 TRAFFIC */
+  private setupTrafficLayers(beforeId?: string) {
+    const map = this.map;
+    const T = TRAFFIC;
+    const empty = { type: 'FeatureCollection' as const, features: [] };
+    for (const id of ['traffic-roads', 'traffic-lines', 'traffic-stations', 'traffic-vehicles']) map.addSource(id, { type: 'geojson', data: empty });
+    const hidden = { visibility: 'none' as const };
+    const modeColor = ['match', ['get', 'mode'], 'metro', T.modeColor.metro, 'lightrail', T.modeColor.lightrail, 'rail', T.modeColor.rail, 'bus', T.modeColor.bus, T.modeColor.bike] as ExpressionSpecification;
+
+    map.addLayer(
+      {
+        id: 'traffic-roads',
+        type: 'line',
+        source: 'traffic-roads',
+        layout: { ...hidden, 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': ['match', ['get', 'level'], 1, T.congestion[1], 2, T.congestion[2], 3, T.congestion[3], T.congestion[0]],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 13, 3.5, 16, 7],
+          'line-opacity': ['case', ['==', ['get', 'level'], 0], 0.45, 0.9],
+        },
+      },
+      beforeId,
+    );
+    map.addLayer(
+      {
+        id: 'traffic-lines-casing',
+        type: 'line',
+        source: 'traffic-lines',
+        layout: { ...hidden, 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#ffffff', 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 4, 14, 9], 'line-opacity': 0.85 },
+      },
+      beforeId,
+    );
+    map.addLayer(
+      {
+        id: 'traffic-lines',
+        type: 'line',
+        source: 'traffic-lines',
+        layout: { ...hidden, 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': ['get', 'color'], 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 2, 14, 5] },
+      },
+      beforeId,
+    );
+    const B = T.bikeColor;
+    map.addLayer({
+      id: 'traffic-bikes',
+      type: 'circle',
+      source: 'traffic-stations',
+      minzoom: 13,
+      filter: TRAFFIC_BASE_FILTER['traffic-bikes'],
+      layout: hidden,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 2.5, 16, 5],
+        'circle-color': ['case', ['<', ['get', 'rent'], 0], '#9aa3ad', ['<=', ['get', 'rent'], 0], B.empty, ['<=', ['get', 'rent'], T.bikeLow], B.low, B.ok],
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1,
+        'circle-pitch-alignment': 'viewport',
+      },
+    });
+    map.addLayer({
+      id: 'traffic-stations',
+      type: 'circle',
+      source: 'traffic-stations',
+      minzoom: 9.5,
+      filter: TRAFFIC_BASE_FILTER['traffic-stations'],
+      layout: hidden,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 9.5, 2.5, 14, 6],
+        'circle-color': '#ffffff',
+        'circle-stroke-color': modeColor,
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9.5, 1.5, 14, 2.5],
+        'circle-pitch-alignment': 'viewport',
+      },
+    });
+    map.addLayer({
+      id: 'traffic-station-labels',
+      type: 'symbol',
+      source: 'traffic-stations',
+      minzoom: 12.5,
+      filter: TRAFFIC_BASE_FILTER['traffic-station-labels'],
+      layout: {
+        ...hidden,
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': 11.5,
+        'text-anchor': 'top',
+        'text-offset': [0, 0.8],
+        'text-optional': true,
+      },
+      paint: { 'text-color': '#2a2723', 'text-halo-color': 'rgba(255,255,255,0.92)', 'text-halo-width': 1.5 },
+    });
+    map.addLayer({
+      id: 'traffic-vehicles',
+      type: 'circle',
+      source: 'traffic-vehicles',
+      layout: hidden,
+      paint: {
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          9,
+          ['match', ['get', 'mode'], 'bus', 1.8, 4],
+          14,
+          ['match', ['get', 'mode'], 'bus', 5, 8],
+        ],
+        'circle-color': ['get', 'color'],
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1, 14, 2],
+        'circle-pitch-alignment': 'viewport',
+      },
+    });
+    map.addLayer({
+      id: 'traffic-vehicle-labels',
+      type: 'symbol',
+      source: 'traffic-vehicles',
+      minzoom: 14.5,
+      layout: {
+        ...hidden,
+        'text-field': ['get', 'line'],
+        'text-font': ['Noto Sans Bold'],
+        'text-size': 10.5,
+        'text-anchor': 'bottom',
+        'text-offset': [0, -0.9],
+        'text-optional': true,
+      },
+      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 },
+    });
+  }
+
   private setupInteraction() {
     const map = this.map;
     // 使用者自己動地圖（拖曳、縮放、旋轉）就停止導覽
@@ -713,12 +994,21 @@ export class MapView {
     });
     const pick = (features: MapGeoJSONFeature[]) => (features.length ? Number(features[0].id) : null);
     map.on('click', (e) => {
+      // 交通模式：先看有沒有點到車輛、車站或路段
+      if (this.trafficOn) {
+        const layers = Object.keys(TRAFFIC_PICK).filter((id) => map.getLayer(id));
+        const t = map.queryRenderedFeatures(e.point, { layers })[0];
+        const pick = t ? { kind: TRAFFIC_PICK[t.layer.id], id: String(t.properties.id), at: [e.lngLat.lng, e.lngLat.lat] as LngLat } : null;
+        for (const h of this.trafficPickHandlers) h(pick);
+        if (pick) return;
+      }
       const hit = map.queryRenderedFeatures(e.point, { layers: ['district-labels', 'districts-fill'] });
       const i = pick(hit);
       this.select(i, i !== null && i !== this.selected);
     });
     map.on('mousemove', (e) => {
-      const hit = map.queryRenderedFeatures(e.point, { layers: ['district-labels', 'districts-fill'] });
+      const layers = ['district-labels', 'districts-fill', ...(this.trafficOn ? Object.keys(TRAFFIC_PICK) : [])];
+      const hit = map.queryRenderedFeatures(e.point, { layers: layers.filter((id) => map.getLayer(id)) });
       map.getCanvas().style.cursor = hit.length ? 'pointer' : '';
     });
   }
@@ -740,4 +1030,11 @@ function circle([lng, lat]: [number, number], km: number): [number, number][] {
     const a = (k / 64) * Math.PI * 2;
     return [lng + dLng * Math.cos(a), lat + dLat * Math.sin(a)];
   });
+}
+
+/** 兩點距離（公里，平面近似；只用來判斷車輛要滑過去還是直接跳過去） */
+function km(a: LngLat, b: LngLat): number {
+  const dx = (b[0] - a[0]) * 111.32 * Math.cos((a[1] * Math.PI) / 180);
+  const dy = (b[1] - a[1]) * 110.574;
+  return Math.hypot(dx, dy);
 }

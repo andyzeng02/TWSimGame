@@ -293,6 +293,38 @@ export const SHOCKWAVE = {
 export const TOUR = { flyMs: 5000, holdMs: 3000 };
 
 /** 地圖用到的線上服務與程式庫（「關於」頁列出；新增服務時同步更新 docs/ARCHITECTURE.md 與 README） */
+/**
+ * 即時交通（交通模式）：顏色、更新頻率、動畫。
+ * 資料來自交通資料伺服器（apps/server）；沒有連上時用示範資料。
+ */
+export const TRAFFIC = {
+  /** 向伺服器要資料的間隔（毫秒） */
+  pollMs: 10_000,
+  /** 示範資料的更新間隔（毫秒；越短列車移動越平順） */
+  demoTickMs: 1000,
+  /** 車輛從舊位置滑到新位置的動畫時間上限（毫秒） */
+  animateMaxMs: 10_000,
+  /** 移動超過這個距離（公里）就直接跳過去，不做滑動動畫 */
+  snapKm: 3,
+  /** 進交通模式時，鏡頭拉遠於 minZoom 就飛到市區 */
+  view: { center: [120.305, 22.632] as [number, number], zoom: 12.2, pitch: 50, bearing: -10, minZoom: 11 },
+  /** 伺服器網址的預設值（也可用網址 ?traffic=…，或交通面板裡的設定） */
+  defaultApi: (import.meta.env.VITE_TRAFFIC_API as string | undefined) ?? '',
+  /** 各運具的預設顏色（路線有官方顏色時用官方顏色） */
+  modeColor: {
+    metro: '#e2231a',
+    lightrail: '#7cc142',
+    rail: '#3a5fa8',
+    bus: '#1d8a8a',
+    bike: '#e8a317',
+  },
+  /** 路段壅塞程度顏色：0 不明、1 順暢、2 車多、3 壅塞 */
+  congestion: ['#9aa3ad', '#3fae5a', '#f0a830', '#d63d2e'] as [string, string, string, string],
+  /** 公共自行車：可借數量 ≤ 這個值顯示「快沒車」顏色 */
+  bikeLow: 2,
+  bikeColor: { empty: '#c94a3a', low: '#e8a317', ok: '#3fae5a' },
+};
+
 export const MAP_SOURCES: { role: string; name: string; license: string; url: string }[] = [
   { role: '地圖資料', name: 'OpenStreetMap 貢獻者', license: 'ODbL 1.0', url: 'https://www.openstreetmap.org/copyright' },
   { role: '向量圖磚', name: 'OpenFreeMap（OpenMapTiles 格式）', license: '免費使用，需標示 OpenStreetMap', url: 'https://openfreemap.org' },
@@ -300,5 +332,6 @@ export const MAP_SOURCES: { role: string; name: string; license: string; url: st
   { role: '地形高程', name: 'Mapzen Terrain Tiles（AWS Open Data）', license: '各來源授權，需標示', url: 'https://registry.opendata.aws/terrain-tiles/' },
   { role: '地圖引擎', name: 'MapLibre GL JS', license: 'BSD-3-Clause', url: 'https://maplibre.org' },
   { role: '等高線', name: 'maplibre-contour', license: 'BSD-3-Clause', url: 'https://github.com/onthegomap/maplibre-contour' },
+  { role: '即時交通', name: '交通部 TDX 運輸資料流通服務（公車、捷運、輕軌、臺鐵、路況、公共自行車）', license: '政府資料開放授權條款－第 1 版', url: 'https://tdx.transportdata.tw' },
   { role: '瀏覽統計', name: 'GoatCounter（不使用 cookie、不追蹤個人）', license: '—', url: 'https://www.goatcounter.com' },
 ];

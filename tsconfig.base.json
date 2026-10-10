@@ -24,6 +24,9 @@
       ],
       "@twsim/geo": [
         "./packages/geo/src/index.ts"
+      ],
+      "@twsim/traffic": [
+        "./packages/traffic/src/index.ts"
       ]
     }
   }

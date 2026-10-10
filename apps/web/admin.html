@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>交通資料管理後台｜台灣微縮模擬</title>
+  </head>
+  <body class="admin">
+    <header class="admin-top">
+      <div class="brand">
+        <strong>交通資料管理後台</strong>
+        <span class="tag">台灣微縮模擬</span>
+      </div>
+      <div id="who" class="quiet"></div>
+      <a href="./?mode=traffic" class="button-link">開啟即時交通地圖 ↗</a>
+      <button id="logout" hidden>登出</button>
+    </header>
+
+    <main>
+      <section id="login" class="card-box">
+        <h2>連線到交通資料伺服器</h2>
+        <p class="quiet">
+          在電腦上執行 <code>npm run server</code> 啟動伺服器；第一次啟動時畫面上會印出管理者權杖（也存在
+          <code>apps/server/data/config.json</code>）。
+        </p>
+        <form id="login-form">
+          <label>伺服器網址 <input id="api" type="url" required placeholder="http://localhost:8787" /></label>
+          <label>管理者權杖 <input id="token" type="password" required autocomplete="current-password" /></label>
+          <label class="inline"><input id="remember" type="checkbox" /> 在這台電腦記住權杖</label>
+          <button type="submit" class="primary">連線</button>
+          <div id="login-msg" class="msg"></div>
+        </form>
+      </section>
+
+      <div id="dash" hidden>
+        <section class="card-box">
+          <h2>總覽</h2>
+          <div id="overview" class="tiles"></div>
+        </section>
+
+        <section class="card-box">
+          <h2>TDX 帳號</h2>
+          <p class="quiet">
+            即時交通資料來自交通部「TDX 運輸資料流通服務」，需要免費會員帳號：到
+            <a href="https://tdx.transportdata.tw/register" target="_blank" rel="noopener">tdx.transportdata.tw</a>
+            註冊後，在「會員中心 → 資料服務 → API 金鑰」取得 Client ID 與 Client Secret。金鑰只存在伺服器上，不會送到網頁版。
+          </p>
+          <form id="tdx-form" class="grid-form">
+            <label>Client ID <input id="tdx-id" autocomplete="off" /></label>
+            <label>Client Secret <input id="tdx-secret" type="password" autocomplete="new-password" /></label>
+            <div class="actions">
+              <button type="submit" class="primary">儲存並重新抓取</button>
+              <button type="button" id="tdx-test">測試連線</button>
+              <span id="tdx-msg" class="msg"></span>
+            </div>
+          </form>
+        </section>
+
+        <section class="card-box">
+          <h2>資料來源</h2>
+          <p class="quiet">勾選要抓取的資料；更新間隔太短可能超過 TDX 的呼叫次數限制（每個來源有最短間隔）。</p>
+          <div class="table-wrap">
+            <table id="connectors">
+              <thead>
+                <tr>
+                  <th>啟用</th>
+                  <th>資料</th>
+                  <th>更新間隔</th>
+                  <th>狀態</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card-box">
+          <h2>允許的網站</h2>
+          <p class="quiet">哪些網站可以讀取即時交通資料（CORS）。一行一個，例如 <code>https://andyzeng02.github.io</code>；填 <code>*</code> 表示全部。</p>
+          <form id="origins-form">
+            <textarea id="origins" rows="3"></textarea>
+            <div class="actions">
+              <button type="submit">儲存</button>
+              <span id="origins-msg" class="msg"></span>
+            </div>
+          </form>
+        </section>
+
+        <section class="card-box">
+          <h2>紀錄</h2>
+          <ol id="log"></ol>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="/src/admin/main.ts"></script>
+  </body>
+</html>

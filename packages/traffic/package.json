@@ -1,0 +1,14 @@
+{
+  "name": "@twsim/traffic",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "交通資料：統一的即時交通格式、TDX 回應轉換、示範資料。無外部依賴，瀏覽器與 Node 皆可用。",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc -p ."
+  }
+}

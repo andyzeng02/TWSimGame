@@ -21,7 +21,8 @@
       <button id="reset-view">重設視角</button>
       <button id="about-open">關於</button>
       <button id="screenshot" title="把目前畫面存成圖片（手機可直接分享）">截圖</button>
-      <button id="to-command" class="primary">地震 72 小時 ▸</button>
+      <button id="to-traffic" class="primary" title="即時交通（T）">即時交通 ▸</button>
+      <button id="to-command" title="災害應變劇本（H）">地震 72 小時</button>
     </header>
 
     <header id="topbar">
@@ -63,6 +64,38 @@
         <h3>事件</h3>
         <ol id="log"></ol>
       </section>
+    </aside>
+
+    <aside id="traffic" hidden>
+      <section>
+        <div class="traffic-head">
+          <h3>即時交通</h3>
+          <span id="traffic-badge" class="badge"></span>
+        </div>
+        <div id="traffic-status" class="quiet"></div>
+      </section>
+      <section>
+        <h3>圖層</h3>
+        <div id="traffic-layers"></div>
+        <div id="traffic-legend"></div>
+      </section>
+      <section>
+        <h3>資料來源</h3>
+        <ul id="traffic-feeds"></ul>
+        <details id="traffic-server">
+          <summary>交通資料伺服器</summary>
+          <form id="traffic-api-form">
+            <input id="traffic-api" type="url" placeholder="http://localhost:8787" autocomplete="off" />
+            <button type="submit">連線</button>
+          </form>
+          <div class="row">
+            <button id="traffic-api-clear" type="button" class="link">只看示範資料</button>
+            <a href="admin.html" target="_blank" rel="noopener">管理後台 ↗</a>
+          </div>
+        </details>
+        <div id="traffic-attribution" class="quiet"></div>
+      </section>
+      <button id="traffic-close" class="wide">回到觀景模式（T）</button>
     </aside>
 
     <aside id="right" hidden>

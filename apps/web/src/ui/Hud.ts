@@ -5,6 +5,7 @@ import { renderEndCard } from './endCard';
 import { byId, el, fmtDays, fmtInt, fmtPct } from './format';
 import { renderRegionPanel } from './regionPanel';
 import { SceneBar } from './sceneBar';
+import { TrafficPanel } from './trafficPanel';
 import { startTutorial, tutorialDone } from './tutorial';
 import { LAYERS, type Layer } from './layers';
 
@@ -34,6 +35,8 @@ export class Hud {
   private scene = true;
   /** 已經播過震波的事件數（重玩時歸零） */
   private shocksSeen = 0;
+  /** 交通模式（觀景模式下疊上即時交通） */
+  private traffic: TrafficPanel;
 
   constructor(private game: Game, private map: MapView) {
     this.buildLayerButtons();
@@ -50,6 +53,8 @@ export class Hud {
     const fac = byId<HTMLInputElement>('facilities');
     fac.addEventListener('change', () => map.setFacilities(fac.checked));
     byId('to-command').addEventListener('click', () => this.setScene(false));
+    this.traffic = new TrafficPanel(map, () => this.traffic.setActive(false));
+    byId('to-traffic').addEventListener('click', () => this.traffic.setActive(!this.traffic.isActive));
     byId('tutorial-open').addEventListener('click', () => this.tutorial());
     byId('to-scene').addEventListener('click', () => this.setScene(true));
     new SceneBar(map);
@@ -63,13 +68,20 @@ export class Hud {
         e.preventDefault();
         game.playing ? game.pause() : game.play();
       }
+      if (e.target instanceof HTMLInputElement) return;
       if (e.code === 'KeyH') this.setScene(!this.scene);
+      if (e.code === 'KeyT' && this.scene) this.traffic.setActive(!this.traffic.isActive);
     });
     this.setScene(true);
+    // 網址 ?mode=traffic 直接進交通模式
+    if (new URLSearchParams(location.search).get('mode') === 'traffic') this.traffic.setActive(true);
   }
 
   private setScene(scene: boolean) {
-    if (!scene) this.map.stopTour();
+    if (!scene) {
+      this.map.stopTour();
+      this.traffic?.setActive(false);
+    }
     this.scene = scene;
     document.body.classList.toggle('scene', scene);
     this.map.setSceneMode(scene);

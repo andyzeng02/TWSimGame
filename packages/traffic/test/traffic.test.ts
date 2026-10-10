@@ -297,3 +297,28 @@ describe('3D 車廂外框', () => {
     for (const c of cars) for (const p of c.ring) assert.ok(Number.isFinite(p[0]) && Number.isFinite(p[1]));
   });
 });
+
+describe('示範公車與分段車廂', () => {
+  it('示範資料有公車，公車在路上移動、沒有官方顏色', () => {
+    const t = Date.UTC(2026, 9, 10, 3, 0, 0);
+    const buses = demoSnapshot(t).vehicles.filter((v) => v.mode === 'bus');
+    assert.ok(buses.length >= 6, `公車 ${buses.length} 台`);
+    for (const b of buses) {
+      assert.equal(b.color, undefined);
+      assert.ok(b.bearing !== undefined);
+    }
+    // 示範公車不畫路線、不加站牌
+    const s = demoSnapshot(t);
+    assert.ok(s.lines.every((l) => l.mode === 'metro'));
+    assert.ok(s.stations.every((x) => x.mode === 'metro'));
+  });
+  it('各節長度不同：公車車頭段＋車身段', () => {
+    const parts = carFootprints([120.3, 22.6], 0, { cars: 1, lengthM: 12, widthM: 2.5, gapM: 0, sectionsM: [2, 10] });
+    assert.equal(parts.length, 2);
+    const len = (r: LngLat[]) => (r[1][1] - r[2][1]) * 110_574;
+    assert.ok(Math.abs(len(parts[0].ring) - 2) < 0.01);
+    assert.ok(Math.abs(len(parts[1].ring) - 10) < 0.01);
+    // 車身段緊接在車頭段後面
+    assert.ok(Math.abs(parts[0].ring[2][1] - parts[1].ring[1][1]) < 1e-9);
+  });
+});

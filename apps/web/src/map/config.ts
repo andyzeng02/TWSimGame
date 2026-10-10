@@ -293,6 +293,19 @@ export const SHOCKWAVE = {
 export const TOUR = { flyMs: 5000, holdMs: 3000 };
 
 /** 地圖用到的線上服務與程式庫（「關於」頁列出；新增服務時同步更新 docs/ARCHITECTURE.md 與 README） */
+/** 一種車的 3D 外型設定（公尺）；minScale、boost 沒給就用 TRAFFIC.model 的預設 */
+export interface VehicleModel {
+  cars: number;
+  lengthM: number;
+  widthM: number;
+  gapM: number;
+  heightM: number;
+  maxScale: number;
+  minScale?: number;
+  sectionsM?: number[];
+  boost?: { width: number; height: number };
+}
+
 /**
  * 即時交通（交通模式）：顏色、更新頻率、動畫。
  * 資料來自交通資料伺服器（apps/server）；沒有連上時用示範資料。
@@ -329,11 +342,24 @@ export const TRAFFIC = {
     minZoom: 11,
     refZoom: 16.6,
     boost: { width: 2.8, height: 2.6 },
-    cars: {
+    cars: <Record<'metro' | 'lightrail' | 'rail' | 'bus', VehicleModel>>{
       metro: { cars: 3, lengthM: 23, widthM: 3.2, gapM: 1.5, heightM: 3.8, maxScale: 12 },
       lightrail: { cars: 5, lengthM: 6.8, widthM: 2.65, gapM: 0.5, heightM: 3.5, maxScale: 12 },
       rail: { cars: 8, lengthM: 20, widthM: 3.2, gapM: 1.5, heightM: 4.1, maxScale: 10 },
-      bus: { cars: 1, lengthM: 12, widthM: 2.5, gapM: 0, heightM: 3.2, maxScale: 6 },
+      // 公車分兩段：車頭（大擋風玻璃）＋車身；比例比列車細長，近看也至少放大 minScale 倍
+      bus: {
+        cars: 1, lengthM: 12, widthM: 2.5, gapM: 0, heightM: 3.2, maxScale: 6, minScale: 2.5,
+        sectionsM: [2.4, 9.6], boost: { width: 1.7, height: 1.9 },
+      },
+    },
+    /** 公車外觀：深色底盤、側窗帶、車頭擋風玻璃（從較低處開始）、白色車頂；高度用整體高度的比例 */
+    bus: {
+      skirt: '#3a3f46',
+      skirtTop: 0.16,
+      windowBand: [0.46, 0.86] as [number, number],
+      windshieldBottom: 0.3,
+      /** 車頂顏色；null = 跟車身同色（從上往下看才認得出公車） */
+      roof: null as string | null,
     },
     /** 窗帶在整體高度中的位置（下緣、上緣比例） */
     windowBand: [0.5, 0.82] as [number, number],

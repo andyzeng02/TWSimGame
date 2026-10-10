@@ -530,15 +530,26 @@ export class MapView {
       points.push({ type: 'Feature' as const, properties: props, geometry: { type: 'Point' as const, coordinates: at } });
       const spec = v.mode === 'bike' ? undefined : M.cars[v.mode];
       if (!spec || zoom < M.minZoom) continue;
-      const scale = Math.min(spec.maxScale, Math.max(1, 2 ** (M.refZoom - zoom)));
-      const h = spec.heightM * scale * M.boost.height;
+      const boost = spec.boost ?? M.boost;
+      const scale = Math.min(spec.maxScale, Math.max(spec.minScale ?? 1, 2 ** (M.refZoom - zoom)));
+      const h = spec.heightM * scale * boost.height;
       const [w0, w1] = M.windowBand;
       const track = v.mode === 'bus' ? [] : (this.trackPaths.get(v.mode) ?? []);
-      const shape = { ...spec, widthM: spec.widthM * M.boost.width };
+      const shape = { ...spec, widthM: spec.widthM * boost.width };
       for (const car of carFootprints(at, v.bearing, shape, scale, track, M.snapM)) {
         const geometry = { type: 'Polygon' as const, coordinates: [car.ring] };
         const part = (base: number, top: number, c: string) =>
           cars.push({ type: 'Feature' as const, properties: { ...props, base, top, color: c }, geometry });
+        if (v.mode === 'bus') {
+          const B = M.bus;
+          const cab = car.index === 0;
+          part(0, h * B.skirtTop, B.skirt);
+          const glass = cab ? B.windshieldBottom : B.windowBand[0];
+          part(h * B.skirtTop, h * glass, color);
+          part(h * glass, h * B.windowBand[1], cab ? M.leadWindow : M.window);
+          part(h * B.windowBand[1], h, B.roof ?? color);
+          continue;
+        }
         part(0, h * w0, color);
         part(h * w0, h * w1, car.index === 0 ? M.leadWindow : M.window);
         part(h * w1, h, color);

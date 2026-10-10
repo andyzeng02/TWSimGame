@@ -1,7 +1,8 @@
 /**
- * 示範資料：沒有連上交通資料伺服器時，畫面仍然看得到「會動的捷運」。
+ * 示範資料：沒有連上交通資料伺服器時，畫面仍然看得到「會動的捷運與公車」。
  *
- * 車站座標是約略值，列車依固定班距在站與站之間移動，**不是即時資料**；
+ * 車站與路線座標是約略值，車輛依固定班距在站與站之間移動，**不是即時資料**；
+ * 示範公車是虛構路線（不是真實的公車路線），只沿著幾條主要道路的大致位置行駛；
  * 畫面上會標示「示範資料」。同一個時間點產生的結果完全相同（不用亂數）。
  */
 import { LINE_COLORS } from './tdx';
@@ -10,8 +11,12 @@ import type { Arrival, LngLat, Station, TrafficSnapshot, TransitLine, Vehicle } 
 interface DemoLine {
   id: string;
   name: string;
+  mode: 'metro' | 'bus';
   /** 班距（秒） */
   headway: number;
+  /** 平均行駛速度（公里／小時）與每站停靠秒數 */
+  speedKmh: number;
+  dwellS: number;
   stations: [string, number, number][];
 }
 
@@ -20,7 +25,10 @@ const DEMO_LINES: DemoLine[] = [
   {
     id: 'R',
     name: '紅線',
+    mode: 'metro',
     headway: 360,
+    speedKmh: 38,
+    dwellS: 30,
     stations: [
       ['小港', 120.3539, 22.5648],
       ['高雄國際機場', 120.3415, 22.5701],
@@ -51,7 +59,10 @@ const DEMO_LINES: DemoLine[] = [
   {
     id: 'O',
     name: '橘線',
+    mode: 'metro',
     headway: 480,
+    speedKmh: 38,
+    dwellS: 30,
     stations: [
       ['西子灣', 120.2737, 22.6213],
       ['鹽埕埔', 120.2836, 22.6236],
@@ -71,11 +82,53 @@ const DEMO_LINES: DemoLine[] = [
   },
 ];
 
-/** 平均行駛速度（公里／小時）與每站停靠秒數 */
-const SPEED_KMH = 38;
-const DWELL_S = 30;
+/** 示範公車（虛構路線，沿主要道路的大致位置；站名只是路口的約略描述） */
+const DEMO_BUSES: DemoLine[] = [
+  {
+    id: 'BA',
+    name: '示範 A',
+    mode: 'bus',
+    headway: 240,
+    speedKmh: 22,
+    dwellS: 20,
+    stations: [
+      ['建國路西段', 120.2830, 22.6385],
+      ['高雄車站前', 120.3020, 22.6390],
+      ['建國民族路口', 120.3150, 22.6385],
+      ['建國路東段', 120.3360, 22.6375],
+    ],
+  },
+  {
+    id: 'BB',
+    name: '示範 B',
+    mode: 'bus',
+    headway: 300,
+    speedKmh: 22,
+    dwellS: 20,
+    stations: [
+      ['民族路南段', 120.3155, 22.6120],
+      ['民族中正路口', 120.3155, 22.6300],
+      ['民族九如路口', 120.3160, 22.6500],
+      ['民族路北段', 120.3175, 22.6720],
+    ],
+  },
+  {
+    id: 'BC',
+    name: '示範 C',
+    mode: 'bus',
+    headway: 270,
+    speedKmh: 22,
+    dwellS: 20,
+    stations: [
+      ['三多路西段', 120.3000, 22.6145],
+      ['三多民族路口', 120.3150, 22.6142],
+      ['三多路中段', 120.3300, 22.6135],
+      ['三多路東段', 120.3450, 22.6130],
+    ],
+  },
+];
 
-export const DEMO_ATTRIBUTION = '示範資料（非即時，車站位置約略）';
+export const DEMO_ATTRIBUTION = '示範資料（非即時；車站位置約略，公車為虛構路線）';
 
 function km(a: LngLat, b: LngLat): number {
   const dx = (b[0] - a[0]) * 111.32 * Math.cos(((a[1] + b[1]) / 2) * (Math.PI / 180));
@@ -89,6 +142,7 @@ interface Timed {
   coords: LngLat[];
   names: string[];
   total: number;
+  dwell: number;
 }
 
 function timetable(line: DemoLine, reverse: boolean): Timed {
@@ -96,18 +150,18 @@ function timetable(line: DemoLine, reverse: boolean): Timed {
   const coords = st.map(([, lng, lat]) => [lng, lat] as LngLat);
   const arrive = [0];
   for (let i = 1; i < coords.length; i++) {
-    const run = (km(coords[i - 1], coords[i]) / SPEED_KMH) * 3600;
-    arrive.push(arrive[i - 1] + DWELL_S + run);
+    const run = (km(coords[i - 1], coords[i]) / line.speedKmh) * 3600;
+    arrive.push(arrive[i - 1] + line.dwellS + run);
   }
-  return { arrive, coords, names: st.map(([n]) => n), total: arrive[arrive.length - 1] };
+  return { arrive, coords, names: st.map(([n]) => n), total: arrive[arrive.length - 1], dwell: line.dwellS };
 }
 
 /** 發車後 age 秒的位置（在站上停靠時就在車站） */
 function locate(t: Timed, age: number): { at: LngLat; bearing: number; next: string; atStation: boolean } {
-  const { arrive, coords, names } = t;
+  const { arrive, coords, names, dwell } = t;
   for (let i = 1; i < coords.length; i++) {
-    const depart = arrive[i - 1] + DWELL_S;
-    if (age < arrive[i - 1] + DWELL_S && age >= arrive[i - 1]) {
+    const depart = arrive[i - 1] + dwell;
+    if (age < depart && age >= arrive[i - 1]) {
       return { at: coords[i - 1], bearing: bearing(coords[i - 1], coords[i]), next: names[i - 1], atStation: true };
     }
     if (age < arrive[i]) {
@@ -133,15 +187,18 @@ export function demoSnapshot(nowMs: number): TrafficSnapshot {
   const lines: TransitLine[] = [];
   const stations = new Map<string, Station>();
 
-  for (const line of DEMO_LINES) {
-    const color = LINE_COLORS[line.id];
-    lines.push({
-      id: `metro:${line.id}`,
-      mode: 'metro',
-      name: line.name,
-      color,
-      path: [line.stations.map(([, lng, lat]) => [lng, lat] as LngLat)],
-    });
+  for (const line of [...DEMO_LINES, ...DEMO_BUSES]) {
+    const bus = line.mode === 'bus';
+    const color = bus ? undefined : LINE_COLORS[line.id];
+    if (color) {
+      lines.push({
+        id: `metro:${line.id}`,
+        mode: 'metro',
+        name: line.name,
+        color,
+        path: [line.stations.map(([, lng, lat]) => [lng, lat] as LngLat)],
+      });
+    }
     for (const reverse of [false, true]) {
       const tt = timetable(line, reverse);
       const toward = tt.names[tt.names.length - 1];
@@ -152,15 +209,16 @@ export function demoSnapshot(nowMs: number): TrafficSnapshot {
         const trip = Math.floor((t - age) / line.headway);
         vehicles.push({
           id: `demo:${line.id}:${reverse ? 'b' : 'a'}:${trip}`,
-          mode: 'metro',
+          mode: line.mode,
           line: line.name,
           label: `往${toward}`,
           at: p.at,
           bearing: p.bearing,
           status: p.atStation ? `停靠${p.next}` : `下一站 ${p.next}`,
-          color,
+          ...(bus ? { speedKmh: p.atStation ? 0 : line.speedKmh } : { color }),
         });
       }
+      if (bus) continue;
       // 每站往這個方向的下一班
       tt.names.forEach((name, i) => {
         if (i === tt.names.length - 1) return;

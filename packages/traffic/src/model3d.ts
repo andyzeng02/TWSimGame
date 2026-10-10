@@ -15,6 +15,8 @@ export interface CarSpec {
   widthM: number;
   /** 車廂之間的間隙 */
   gapM: number;
+  /** 各節長度不同時（例如公車的車頭段＋車身段）用這個；有給就取代 cars 與 lengthM */
+  sectionsM?: number[];
 }
 
 /** 一節車廂：地面矩形（首尾相接的 5 個點）＋第幾節（0 = 車頭） */
@@ -129,15 +131,17 @@ export function carFootprints(
   paths: LngLat[][] = [],
   snapM = 150,
 ): CarFootprint[] {
-  const len = spec.lengthM * scale;
+  const lengths = (spec.sectionsM?.length ? spec.sectionsM : Array<number>(spec.cars).fill(spec.lengthM)).map((l) => l * scale);
   const gap = spec.gapM * scale;
   const half = (spec.widthM * scale) / 2;
-  const total = spec.cars * len + (spec.cars - 1) * gap;
+  const total = lengths.reduce((a, b) => a + b, 0) + (lengths.length - 1) * gap;
   const pts = spine(head, bearing, total, paths, snapM * Math.max(1, scale));
   const out: CarFootprint[] = [];
-  for (let k = 0; k < spec.cars; k++) {
-    const front = pointAt(pts, k * (len + gap));
-    const rear = pointAt(pts, k * (len + gap) + len);
+  let at = 0;
+  for (let k = 0; k < lengths.length; k++) {
+    const front = pointAt(pts, at);
+    const rear = pointAt(pts, at + lengths[k]);
+    at += lengths[k] + gap;
     const dx = front[0] - rear[0];
     const dy = front[1] - rear[1];
     const d = Math.hypot(dx, dy) || 1;

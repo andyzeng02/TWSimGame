@@ -70,6 +70,7 @@ npm run build-world -- --boundaries pipeline/raw/TOWN_MOI_1140318.shp   # 重產
 
 - TypeScript strict、ESM；套件直接匯出 `src/index.ts`，沒有建置步驟。內部套件路徑對應在 `tsconfig.base.json` 的 `paths`。
 - 相對 import 不加副檔名。
+- **回覆使用者一律用繁體中文**（包含進度說明與總結）。
 - 註解、介面文字用繁體中文；識別字用英文。
 - 單位：1 tick = 1 小時；距離公里；物資以天計；秩序、通行率為 0–1。
 - 測試放在 `packages/*/test/` 與 `pipeline/test/`，用 `node:test`。
